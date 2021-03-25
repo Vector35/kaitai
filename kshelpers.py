@@ -14,8 +14,13 @@ import collections
 
 from binaryninja import log
 
-from PySide2.QtCore import Qt
-from PySide2.QtWidgets import QTreeWidgetItem
+import binaryninjaui
+if "qt_major_version" in dir(binaryninjaui) and binaryninjaui.qt_major_version == 6:
+        from PySide6.QtCore import Qt
+        from PySide6.QtWidgets import QTreeWidgetItem
+else:
+        from PySide2.QtCore import Qt
+        from PySide2.QtWidgets import QTreeWidgetItem
 
 if sys.version_info[0] == 2:
 	import kaitaistruct

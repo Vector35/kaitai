@@ -6,9 +6,15 @@ import sys
 from binaryninjaui import StatusBarWidget, ContextMenuManager, Menu, UIActionHandler, UIAction
 
 # pyside stuff
-from PySide2.QtCore import Qt
-from PySide2.QtGui import QPalette
-from PySide2.QtWidgets import QScrollArea, QWidget, QVBoxLayout, QGroupBox, QTreeWidget, QTreeWidgetItem, QLineEdit, QHeaderView, QLabel, QMenu, QHBoxLayout
+import binaryninjaui
+if "qt_major_version" in dir(binaryninjaui) and binaryninjaui.qt_major_version == 6:
+        from PySide6.QtCore import Qt
+        from PySide6.QtGui import QPalette
+        from PySide6.QtWidgets import QScrollArea, QWidget, QVBoxLayout, QGroupBox, QTreeWidget, QTreeWidgetItem, QLineEdit, QHeaderView, QLabel, QMenu, QHBoxLayout
+else:
+        from PySide2.QtCore import Qt
+        from PySide2.QtGui import QPalette
+        from PySide2.QtWidgets import QScrollArea, QWidget, QVBoxLayout, QGroupBox, QTreeWidget, QTreeWidgetItem, QLineEdit, QHeaderView, QLabel, QMenu, QHBoxLayout
 
 class KaitaiOptionsWidget(QLabel):
 	def __init__(self, parent):
