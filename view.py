@@ -14,8 +14,14 @@ from binaryninja.settings import Settings
 from binaryninja import _binaryninjacore as core
 from binaryninjaui import View, ViewType, ViewFrame, UIContext, HexEditor, getMonospaceFont
 
-from PySide2.QtCore import Qt
-from PySide2.QtWidgets import QScrollArea, QWidget, QVBoxLayout, QGroupBox, QTreeWidget, QTreeWidgetItem, QLineEdit, QHeaderView, QSplitter
+
+import binaryninjaui
+if "qt_major_version" in dir(binaryninjaui) and binaryninjaui.qt_major_version == 6:
+        from PySide6.QtCore import Qt
+        from PySide6.QtWidgets import QScrollArea, QWidget, QVBoxLayout, QGroupBox, QTreeWidget, QTreeWidgetItem, QLineEdit, QHeaderView, QSplitter
+else:
+        from PySide2.QtCore import Qt
+        from PySide2.QtWidgets import QScrollArea, QWidget, QVBoxLayout, QGroupBox, QTreeWidget, QTreeWidgetItem, QLineEdit, QHeaderView, QSplitter
 
 from . import menu
 
