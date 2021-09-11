@@ -12,7 +12,7 @@ import binascii
 import importlib
 import collections
 
-from binaryninja import log
+from binaryninja.log import log_debug, log_info, log_error
 
 import binaryninjaui
 if "qt_major_version" in dir(binaryninjaui) and binaryninjaui.qt_major_version == 6:
@@ -37,7 +37,7 @@ else:
 # length:	int		total length of data
 def idData(dataSample, length):
 	result = None
-	#log.log_debug('idData() here with sample: %s' % repr(dataSample))
+	#log_debug('idData() here with sample: %s' % repr(dataSample))
 
 	if len(dataSample) < 16:
 		return result
@@ -63,7 +63,7 @@ def idData(dataSample, length):
 	if dataSample[0:2] == b'\x1f\x8b' and dataSample[2:3]==b'\x08':
 		result = 'gzip'
 
-	#log.log_debug('idData() returning \'%s\'' % result)
+	#log_debug('idData() returning \'%s\'' % result)
 	return result
 
 def idFile(fpath):
@@ -81,17 +81,17 @@ def ksImportClass(moduleName):
 
 	classThing = None
 	try:
-		#log.log_debug('__package__: -%s-' % __package__)	# 'kaitai'
-		#log.log_debug('__name__: -%s-' % __name__)			# 'kaitai.kshelpers'
-		#log.log_debug('moduleName: -%s-' % moduleName)
-		#log.log_debug('importlib.import_module(.%s, %s)' % (moduleName, __package__))
-		log.log_info('importing kaitai module %s' % moduleName)
+		#log_debug('__package__: -%s-' % __package__)	# 'kaitai'
+		#log_debug('__name__: -%s-' % __name__)			# 'kaitai.kshelpers'
+		#log_debug('moduleName: -%s-' % moduleName)
+		#log_debug('importlib.import_module(.%s, %s)' % (moduleName, __package__))
+		log_info('importing kaitai module %s' % moduleName)
 		module = importlib.import_module('.'+moduleName, __package__)
 		className = ksModuleToClass(moduleName)
-		#log.log_debug('className: -%s-' % className)
+		#log_debug('className: -%s-' % className)
 		classThing = getattr(module, className)
 	except Exception as e:
-		log.log_error('importing kaitai module %s' % moduleName)
+		log_error('importing kaitai module %s' % moduleName)
 		pass
 
 	return classThing
@@ -99,7 +99,7 @@ def ksImportClass(moduleName):
 def parseFpath(fpath, ksModuleName=None):
 	if not ksModuleName:
 		ksModuleName = idFile(fpath)
-	#log.log_debug('parseFpath() using kaitai format: %s' % ksModuleName)
+	#log_debug('parseFpath() using kaitai format: %s' % ksModuleName)
 
 	ksClass = ksImportClass(ksModuleName)
 	if not ksClass: return None
@@ -109,7 +109,7 @@ def parseFpath(fpath, ksModuleName=None):
 		parsed = ksClass.from_file(fpath)
 		parsed._read()
 	except Exception as e:
-		log.log_error('parseFpath(): kaitai module %s threw exception, check file type' % ksModuleName)
+		log_error('parseFpath(): kaitai module %s threw exception, check file type' % ksModuleName)
 		parsed = None
 
 	return parsed
@@ -117,7 +117,7 @@ def parseFpath(fpath, ksModuleName=None):
 def parseData(data, ksModuleName=None):
 	if not ksModuleName:
 		ksModuleName = idData(data, len(data))
-	#log.log_debug('parseData() using kaitai format: %s' % ksModuleName)
+	#log_debug('parseData() using kaitai format: %s' % ksModuleName)
 
 	ksClass = ksImportClass(ksModuleName)
 	if not ksClass: return None
@@ -127,7 +127,7 @@ def parseData(data, ksModuleName=None):
 		parsed = ksClass.from_bytes(data)
 		parsed._read()
 	except Exception as e:
-		log.log_error('parseData(): kaitai module %s threw exception, check file type' % ksModuleName)
+		log_error('parseData(): kaitai module %s threw exception, check file type' % ksModuleName)
 		parsed = None
 
 	return parsed
@@ -139,7 +139,7 @@ def parseIo(ioObj, ksModuleName=None):
 	if not ksModuleName:
 		ioObj.seek(0, io.SEEK_SET)
 		ksModuleName = idData(ioObj.read(16), length)
-	#log.log_debug('parseIo() using kaitai format: %s' % ksModuleName)
+	#log_debug('parseIo() using kaitai format: %s' % ksModuleName)
 
 	ioObj.seek(0, io.SEEK_SET)
 	ksClass = ksImportClass(ksModuleName)
@@ -151,7 +151,7 @@ def parseIo(ioObj, ksModuleName=None):
 		parsed = ksClass.from_io(ioObj)
 		parsed._read()
 	except Exception as e:
-		log.log_error('parseIo(): kaitai module %s threw exception, check file type' % ksModuleName)
+		log_error('parseIo(): kaitai module %s threw exception, check file type' % ksModuleName)
 		parsed = None
 
 	return parsed
@@ -451,7 +451,7 @@ class KaitaiBinaryViewIO:
 		self.position = 0
 
 	def seek(self, offs, whence=io.SEEK_SET):
-		#log.log_debug('seek(0x%X, %d)' % (offs, whence))
+		#log_debug('seek(0x%X, %d)' % (offs, whence))
 		if whence == io.SEEK_SET:
 			self.position = offs
 		elif whence == io.SEEK_CUR:
@@ -462,7 +462,7 @@ class KaitaiBinaryViewIO:
 			raise Exception('unknown whence in seek(): %d' % whence)
 
 	def tell(self):
-		#log.log_debug('tell() returning 0x%X' % (self.position))
+		#log_debug('tell() returning 0x%X' % (self.position))
 		return self.position
 
 	def read(self, length=None):
@@ -470,7 +470,7 @@ class KaitaiBinaryViewIO:
 		if length == None:
 			length = len(self.binaryView) - self.position
 
-		#log.log_debug('read(%d) (starting at position: 0x%X)' % (length, self.position))
+		#log_debug('read(%d) (starting at position: 0x%X)' % (length, self.position))
 		data = self.binaryView.read(self.position, length)
 		self.position += length
 		return data
@@ -703,16 +703,16 @@ def createLeaf(fieldName, obj):
 	objtype = type(obj)
 
 	if objtype == types.FunctionType:
-		#log.log_debug('reject %s because its a function' % fieldName)
+		#log_debug('reject %s because its a function' % fieldName)
 		return None
 	elif isinstance(obj, type):
-		#log.log_debug('reject %s because its a type' % fieldName)
+		#log_debug('reject %s because its a type' % fieldName)
 		return None
 	elif sys.version_info[0] == 2 and callable(obj):
-		#log.log_debug('reject %s because its a callable' % fieldName)
+		#log_debug('reject %s because its a callable' % fieldName)
 		return None
 	elif sys.version_info[0] == 3 and hasattr(obj, '__call__'):
-		#log.log_debug('reject %s because its a callable' % fieldName)
+		#log_debug('reject %s because its a callable' % fieldName)
 		return None
 
 	fieldValue = None
@@ -731,7 +731,7 @@ def createLeaf(fieldName, obj):
 	elif str(objtype).startswith('<enum '):
 		fieldValue = '%s' % (obj)
 	else:
-		#log.log_debug('field %s has type: -%s-' % (fieldName,str(objtype)))
+		#log_debug('field %s has type: -%s-' % (fieldName,str(objtype)))
 		pass
 
 	if fieldValue:
@@ -740,9 +740,9 @@ def createLeaf(fieldName, obj):
 		widget.setValue(fieldValue)
 		return widget
 	else:
-		#log.log_debug('rejected leaf node to %s' % fieldName)
-		#log.log_debug(obj)
-		#log.log_debug(type(obj))
+		#log_debug('rejected leaf node to %s' % fieldName)
+		#log_debug(obj)
+		#log_debug(type(obj))
 		return None
 
 # ARG				TYPE					NOTES
@@ -754,7 +754,7 @@ def createLeaf(fieldName, obj):
 def populateChild(ksobj, fieldName, fieldLabel, fieldValue, widget):
 	if fieldLabel:
 		widget.setLabel(fieldLabel)
-		#log.log_debug('setting Label: %s' % fieldLabel)
+		#log_debug('setting Label: %s' % fieldLabel)
 	if fieldValue:
 		widget.setValue(fieldValue)
 

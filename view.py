@@ -8,7 +8,7 @@ import types
 import traceback
 
 # binja stuff
-from binaryninja import log
+from binaryninja.log import log_debug, log_info, log_error
 from binaryninja import binaryview
 from binaryninja.settings import Settings
 from binaryninja import _binaryninjacore as core
@@ -50,7 +50,7 @@ class MyQTreeWidget(QTreeWidget):
 		newWidth = self.width()
 		newHeight = self.height()
 
-		#log.log_debug('QTreeWidget resizeEvent(), now I\'m %dx%d' % (newWidth, newHeight))
+		#log_debug('QTreeWidget resizeEvent(), now I\'m %dx%d' % (newWidth, newHeight))
 
 		if newWidth == self.oldWidth and newHeight == self.oldHeight:
 			return
@@ -89,7 +89,7 @@ class MyQTreeWidget(QTreeWidget):
 			queue.append(self.topLevelItem(i))
 
 		while visibleRows < rowCapacity:
-			#log.log_debug('visibleRows=%d, rowCapacity=%d len(queue)=%d' % (visibleRows, rowCapacity, len(queue)))
+			#log_debug('visibleRows=%d, rowCapacity=%d len(queue)=%d' % (visibleRows, rowCapacity, len(queue)))
 			if not queue:
 				break
 
@@ -150,7 +150,7 @@ class KaitaiView(QScrollArea, View):
 
 	# parse the file using Kaitai, construct the TreeWidget
 	def kaitaiParse(self, ksModuleName=None):
-		log.log_debug('kaitaiParse() with len(bv)=%d and bv.file.filename=%s' % (len(self.binaryView), self.binaryView.file.filename))
+		log_debug('kaitaiParse() with len(bv)=%d and bv.file.filename=%s' % (len(self.binaryView), self.binaryView.file.filename))
 
 		if len(self.binaryView) == 0:
 			return
@@ -167,7 +167,7 @@ class KaitaiView(QScrollArea, View):
 			try:
 				tree = kshelpers.buildQtree(parsed)
 			except Exception as e:
-				log.log_error('kaitai module %s threw exception, check file type' % ksModuleName)
+				log_error('kaitai module %s threw exception, check file type' % ksModuleName)
 				tree = None
 		else:
 			tree = kshelpers.buildQtree(parsed)
@@ -210,23 +210,23 @@ class KaitaiView(QScrollArea, View):
 
 	def getStart(self):
 		result = self.binaryView.start
-		#log.log_debug('getStart() returning '+str(result))
+		#log_debug('getStart() returning '+str(result))
 		return result
 
 	def getEnd(self):
 		result = self.binaryView.end
-		#log.log_debug('getEnd() returning '+str(result))
+		#log_debug('getEnd() returning '+str(result))
 		return result
 
 	def getLength(self):
 		result = len(self.binaryView)
-		#log.log_debug('getLength() returning '+str(result))
+		#log_debug('getLength() returning '+str(result))
 		return result
 
 	def getCurrentOffset(self):
 		result = self.rootSelectionStart + int((self.rootSelectionEnd - self.rootSelectionStart)/2)
 		#result = self.rootSelectionStart
-		#log.log_debug('getCurrentOffset() returning '+str(result))
+		#log_debug('getCurrentOffset() returning '+str(result))
 		return result
 
 	def getSelectionOffsets(self):
@@ -235,11 +235,11 @@ class KaitaiView(QScrollArea, View):
 			result = self.hexWidget.getSelectionOffsets()
 		else:
 			result = (self.rootSelectionStart, self.rootSelectionStart)
-		#log.log_debug('getSelectionOffsets() returning '+str(result))
+		#log_debug('getSelectionOffsets() returning '+str(result))
 		return result
 
 	def setCurrentOffset(self, offset):
-		#log.log_debug('setCurrentOffset(0x%X)' % offset)
+		#log_debug('setCurrentOffset(0x%X)' % offset)
 		self.rootSelectionStart = offset
 		UIContext.updateStatus(True)
 
@@ -253,7 +253,7 @@ class KaitaiView(QScrollArea, View):
 		return True
 
 	def navigateToFileOffset(self, offset):
-		#log.log_debug('navigateToFileOffset()')
+		#log_debug('navigateToFileOffset()')
 		return False
 
 	def onTreeSelect(self, wtf=None):
@@ -325,7 +325,7 @@ class KaitaiView(QScrollArea, View):
 			self.ioCurrent = _io
 
 		# now position selection in whatever HexEditor is current
-		#log.log_debug('selecting to [0x%X, 0x%X)' % (start, end))
+		#log_debug('selecting to [0x%X, 0x%X)' % (start, end))
 		self.hexWidget.setSelectionRange(start, end)
 
 		# set hex group title to reflect current selection
@@ -341,7 +341,7 @@ class KaitaiViewType(ViewType):
 	# binaryView:		BinaryView
 	def getPriority(self, binaryView, filename):
 		#return 100
-		#log.log_debug('len(bv)=0x%X executable=%d bytes=%s' % (len(binaryView), binaryView.executable, repr(binaryView.read(0,4))))
+		#log_debug('len(bv)=0x%X executable=%d bytes=%s' % (len(binaryView), binaryView.executable, repr(binaryView.read(0,4))))
 
 		# executable means the view is mapped like an OS loader would load an executable (eg: view=ELF)
 		# !executable means executable image is not mapped (eg: view=Raw) (or something like .png is loaded)
