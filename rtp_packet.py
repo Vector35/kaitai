@@ -1,13 +1,13 @@
 # This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
 from pkg_resources import parse_version
-from .kaitaistruct import __version__ as ks_version, KaitaiStruct, KaitaiStream, BytesIO
+from . import kaitaistruct
+from .kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
 from enum import Enum
-import collections
 
 
-if parse_version(ks_version) < parse_version('0.7'):
-    raise Exception("Incompatible Kaitai Struct Python API: 0.7 or later is required, but you have %s" % (ks_version))
+if parse_version(kaitaistruct.__version__) < parse_version('0.9'):
+    raise Exception("Incompatible Kaitai Struct Python API: 0.9 or later is required, but you have %s" % (kaitaistruct.__version__))
 
 class RtpPacket(KaitaiStruct):
     """The Real-time Transport Protocol (RTP) is a widely used network
@@ -53,70 +53,39 @@ class RtpPacket(KaitaiStruct):
         mp2t = 33
         h263 = 34
         mpeg_ps = 96
-    SEQ_FIELDS = ["version", "has_padding", "has_extension", "csrc_count", "marker", "payload_type", "sequence_number", "timestamp", "ssrc", "header_extension", "data", "padding"]
     def __init__(self, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
         self._root = _root if _root else self
-        self._debug = collections.defaultdict(dict)
+        self._read()
 
     def _read(self):
-        self._debug['version']['start'] = self._io.pos()
-        self.version = self._io.read_bits_int(2)
-        self._debug['version']['end'] = self._io.pos()
-        self._debug['has_padding']['start'] = self._io.pos()
-        self.has_padding = self._io.read_bits_int(1) != 0
-        self._debug['has_padding']['end'] = self._io.pos()
-        self._debug['has_extension']['start'] = self._io.pos()
-        self.has_extension = self._io.read_bits_int(1) != 0
-        self._debug['has_extension']['end'] = self._io.pos()
-        self._debug['csrc_count']['start'] = self._io.pos()
-        self.csrc_count = self._io.read_bits_int(4)
-        self._debug['csrc_count']['end'] = self._io.pos()
-        self._debug['marker']['start'] = self._io.pos()
-        self.marker = self._io.read_bits_int(1) != 0
-        self._debug['marker']['end'] = self._io.pos()
-        self._debug['payload_type']['start'] = self._io.pos()
-        self.payload_type = KaitaiStream.resolve_enum(self._root.PayloadTypeEnum, self._io.read_bits_int(7))
-        self._debug['payload_type']['end'] = self._io.pos()
+        self.version = self._io.read_bits_int_be(2)
+        self.has_padding = self._io.read_bits_int_be(1) != 0
+        self.has_extension = self._io.read_bits_int_be(1) != 0
+        self.csrc_count = self._io.read_bits_int_be(4)
+        self.marker = self._io.read_bits_int_be(1) != 0
+        self.payload_type = KaitaiStream.resolve_enum(RtpPacket.PayloadTypeEnum, self._io.read_bits_int_be(7))
         self._io.align_to_byte()
-        self._debug['sequence_number']['start'] = self._io.pos()
         self.sequence_number = self._io.read_u2be()
-        self._debug['sequence_number']['end'] = self._io.pos()
-        self._debug['timestamp']['start'] = self._io.pos()
         self.timestamp = self._io.read_u4be()
-        self._debug['timestamp']['end'] = self._io.pos()
-        self._debug['ssrc']['start'] = self._io.pos()
         self.ssrc = self._io.read_u4be()
-        self._debug['ssrc']['end'] = self._io.pos()
         if self.has_extension:
-            self._debug['header_extension']['start'] = self._io.pos()
-            self.header_extension = self._root.HeaderExtention(self._io, self, self._root)
-            self.header_extension._read()
-            self._debug['header_extension']['end'] = self._io.pos()
+            self.header_extension = RtpPacket.HeaderExtention(self._io, self, self._root)
 
-        self._debug['data']['start'] = self._io.pos()
         self.data = self._io.read_bytes(((self._io.size() - self._io.pos()) - self.len_padding))
-        self._debug['data']['end'] = self._io.pos()
-        self._debug['padding']['start'] = self._io.pos()
         self.padding = self._io.read_bytes(self.len_padding)
-        self._debug['padding']['end'] = self._io.pos()
 
     class HeaderExtention(KaitaiStruct):
-        SEQ_FIELDS = ["id", "length"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['id']['start'] = self._io.pos()
             self.id = self._io.read_u2be()
-            self._debug['id']['end'] = self._io.pos()
-            self._debug['length']['start'] = self._io.pos()
             self.length = self._io.read_u2be()
-            self._debug['length']['end'] = self._io.pos()
 
 
     @property
@@ -130,9 +99,7 @@ class RtpPacket(KaitaiStruct):
         if self.has_padding:
             _pos = self._io.pos()
             self._io.seek((self._io.size() - 1))
-            self._debug['_m_len_padding_if_exists']['start'] = self._io.pos()
             self._m_len_padding_if_exists = self._io.read_u1()
-            self._debug['_m_len_padding_if_exists']['end'] = self._io.pos()
             self._io.seek(_pos)
 
         return self._m_len_padding_if_exists if hasattr(self, '_m_len_padding_if_exists') else None

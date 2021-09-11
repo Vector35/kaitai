@@ -1,13 +1,13 @@
 # This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
 from pkg_resources import parse_version
-from .kaitaistruct import __version__ as ks_version, KaitaiStruct, KaitaiStream, BytesIO
+from . import kaitaistruct
+from .kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
 from enum import Enum
-import collections
 
 
-if parse_version(ks_version) < parse_version('0.7'):
-    raise Exception("Incompatible Kaitai Struct Python API: 0.7 or later is required, but you have %s" % (ks_version))
+if parse_version(kaitaistruct.__version__) < parse_version('0.9'):
+    raise Exception("Incompatible Kaitai Struct Python API: 0.9 or later is required, but you have %s" % (kaitaistruct.__version__))
 
 class Uimage(KaitaiStruct):
     """The new uImage format allows more flexibility in handling images of various
@@ -82,67 +82,38 @@ class Uimage(KaitaiStruct):
         flatdt = 8
         kwbimage = 9
         imximage = 10
-    SEQ_FIELDS = ["header", "data"]
     def __init__(self, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
         self._root = _root if _root else self
-        self._debug = collections.defaultdict(dict)
+        self._read()
 
     def _read(self):
-        self._debug['header']['start'] = self._io.pos()
-        self.header = self._root.Uheader(self._io, self, self._root)
-        self.header._read()
-        self._debug['header']['end'] = self._io.pos()
-        self._debug['data']['start'] = self._io.pos()
+        self.header = Uimage.Uheader(self._io, self, self._root)
         self.data = self._io.read_bytes(self.header.len_image)
-        self._debug['data']['end'] = self._io.pos()
 
     class Uheader(KaitaiStruct):
-        SEQ_FIELDS = ["magic", "header_crc", "timestamp", "len_image", "load_address", "entry_address", "data_crc", "os_type", "architecture", "image_type", "compression_type", "name"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['magic']['start'] = self._io.pos()
-            self.magic = self._io.ensure_fixed_contents(b"\x27\x05\x19\x56")
-            self._debug['magic']['end'] = self._io.pos()
-            self._debug['header_crc']['start'] = self._io.pos()
+            self.magic = self._io.read_bytes(4)
+            if not self.magic == b"\x27\x05\x19\x56":
+                raise kaitaistruct.ValidationNotEqualError(b"\x27\x05\x19\x56", self.magic, self._io, u"/types/uheader/seq/0")
             self.header_crc = self._io.read_u4be()
-            self._debug['header_crc']['end'] = self._io.pos()
-            self._debug['timestamp']['start'] = self._io.pos()
             self.timestamp = self._io.read_u4be()
-            self._debug['timestamp']['end'] = self._io.pos()
-            self._debug['len_image']['start'] = self._io.pos()
             self.len_image = self._io.read_u4be()
-            self._debug['len_image']['end'] = self._io.pos()
-            self._debug['load_address']['start'] = self._io.pos()
             self.load_address = self._io.read_u4be()
-            self._debug['load_address']['end'] = self._io.pos()
-            self._debug['entry_address']['start'] = self._io.pos()
             self.entry_address = self._io.read_u4be()
-            self._debug['entry_address']['end'] = self._io.pos()
-            self._debug['data_crc']['start'] = self._io.pos()
             self.data_crc = self._io.read_u4be()
-            self._debug['data_crc']['end'] = self._io.pos()
-            self._debug['os_type']['start'] = self._io.pos()
-            self.os_type = KaitaiStream.resolve_enum(self._root.UimageOs, self._io.read_u1())
-            self._debug['os_type']['end'] = self._io.pos()
-            self._debug['architecture']['start'] = self._io.pos()
-            self.architecture = KaitaiStream.resolve_enum(self._root.UimageArch, self._io.read_u1())
-            self._debug['architecture']['end'] = self._io.pos()
-            self._debug['image_type']['start'] = self._io.pos()
-            self.image_type = KaitaiStream.resolve_enum(self._root.UimageType, self._io.read_u1())
-            self._debug['image_type']['end'] = self._io.pos()
-            self._debug['compression_type']['start'] = self._io.pos()
-            self.compression_type = KaitaiStream.resolve_enum(self._root.UimageComp, self._io.read_u1())
-            self._debug['compression_type']['end'] = self._io.pos()
-            self._debug['name']['start'] = self._io.pos()
+            self.os_type = KaitaiStream.resolve_enum(Uimage.UimageOs, self._io.read_u1())
+            self.architecture = KaitaiStream.resolve_enum(Uimage.UimageArch, self._io.read_u1())
+            self.image_type = KaitaiStream.resolve_enum(Uimage.UimageType, self._io.read_u1())
+            self.compression_type = KaitaiStream.resolve_enum(Uimage.UimageComp, self._io.read_u1())
             self.name = (KaitaiStream.bytes_terminate(self._io.read_bytes(32), 0, False)).decode(u"UTF-8")
-            self._debug['name']['end'] = self._io.pos()
 
 
 

@@ -1,13 +1,13 @@
 # This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
 from pkg_resources import parse_version
-from .kaitaistruct import __version__ as ks_version, KaitaiStruct, KaitaiStream, BytesIO
+from . import kaitaistruct
+from .kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
 from enum import Enum
-import collections
 
 
-if parse_version(ks_version) < parse_version('0.7'):
-    raise Exception("Incompatible Kaitai Struct Python API: 0.7 or later is required, but you have %s" % (ks_version))
+if parse_version(kaitaistruct.__version__) < parse_version('0.9'):
+    raise Exception("Incompatible Kaitai Struct Python API: 0.9 or later is required, but you have %s" % (kaitaistruct.__version__))
 
 from . import windows_systemtime
 from . import ethernet_frame
@@ -130,107 +130,61 @@ class MicrosoftNetworkMonitorV2(KaitaiStruct):
         zwave_r3 = 262
         wattstopper_dlm = 263
         iso_14443 = 264
-    SEQ_FIELDS = ["signature", "version_minor", "version_major", "mac_type", "time_capture_start", "frame_table_ofs", "frame_table_len", "user_data_ofs", "user_data_len", "comment_ofs", "comment_len", "statistics_ofs", "statistics_len", "network_info_ofs", "network_info_len", "conversation_stats_ofs", "conversation_stats_len"]
     def __init__(self, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
         self._root = _root if _root else self
-        self._debug = collections.defaultdict(dict)
+        self._read()
 
     def _read(self):
-        self._debug['signature']['start'] = self._io.pos()
-        self.signature = self._io.ensure_fixed_contents(b"\x47\x4D\x42\x55")
-        self._debug['signature']['end'] = self._io.pos()
-        self._debug['version_minor']['start'] = self._io.pos()
+        self.signature = self._io.read_bytes(4)
+        if not self.signature == b"\x47\x4D\x42\x55":
+            raise kaitaistruct.ValidationNotEqualError(b"\x47\x4D\x42\x55", self.signature, self._io, u"/seq/0")
         self.version_minor = self._io.read_u1()
-        self._debug['version_minor']['end'] = self._io.pos()
-        self._debug['version_major']['start'] = self._io.pos()
         self.version_major = self._io.read_u1()
-        self._debug['version_major']['end'] = self._io.pos()
-        self._debug['mac_type']['start'] = self._io.pos()
-        self.mac_type = KaitaiStream.resolve_enum(self._root.Linktype, self._io.read_u2le())
-        self._debug['mac_type']['end'] = self._io.pos()
-        self._debug['time_capture_start']['start'] = self._io.pos()
+        self.mac_type = KaitaiStream.resolve_enum(MicrosoftNetworkMonitorV2.Linktype, self._io.read_u2le())
         self.time_capture_start = windows_systemtime.WindowsSystemtime(self._io)
-        self.time_capture_start._read()
-        self._debug['time_capture_start']['end'] = self._io.pos()
-        self._debug['frame_table_ofs']['start'] = self._io.pos()
         self.frame_table_ofs = self._io.read_u4le()
-        self._debug['frame_table_ofs']['end'] = self._io.pos()
-        self._debug['frame_table_len']['start'] = self._io.pos()
         self.frame_table_len = self._io.read_u4le()
-        self._debug['frame_table_len']['end'] = self._io.pos()
-        self._debug['user_data_ofs']['start'] = self._io.pos()
         self.user_data_ofs = self._io.read_u4le()
-        self._debug['user_data_ofs']['end'] = self._io.pos()
-        self._debug['user_data_len']['start'] = self._io.pos()
         self.user_data_len = self._io.read_u4le()
-        self._debug['user_data_len']['end'] = self._io.pos()
-        self._debug['comment_ofs']['start'] = self._io.pos()
         self.comment_ofs = self._io.read_u4le()
-        self._debug['comment_ofs']['end'] = self._io.pos()
-        self._debug['comment_len']['start'] = self._io.pos()
         self.comment_len = self._io.read_u4le()
-        self._debug['comment_len']['end'] = self._io.pos()
-        self._debug['statistics_ofs']['start'] = self._io.pos()
         self.statistics_ofs = self._io.read_u4le()
-        self._debug['statistics_ofs']['end'] = self._io.pos()
-        self._debug['statistics_len']['start'] = self._io.pos()
         self.statistics_len = self._io.read_u4le()
-        self._debug['statistics_len']['end'] = self._io.pos()
-        self._debug['network_info_ofs']['start'] = self._io.pos()
         self.network_info_ofs = self._io.read_u4le()
-        self._debug['network_info_ofs']['end'] = self._io.pos()
-        self._debug['network_info_len']['start'] = self._io.pos()
         self.network_info_len = self._io.read_u4le()
-        self._debug['network_info_len']['end'] = self._io.pos()
-        self._debug['conversation_stats_ofs']['start'] = self._io.pos()
         self.conversation_stats_ofs = self._io.read_u4le()
-        self._debug['conversation_stats_ofs']['end'] = self._io.pos()
-        self._debug['conversation_stats_len']['start'] = self._io.pos()
         self.conversation_stats_len = self._io.read_u4le()
-        self._debug['conversation_stats_len']['end'] = self._io.pos()
 
     class FrameIndex(KaitaiStruct):
-        SEQ_FIELDS = ["entries"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['entries']['start'] = self._io.pos()
             self.entries = []
             i = 0
             while not self._io.is_eof():
-                if not 'arr' in self._debug['entries']:
-                    self._debug['entries']['arr'] = []
-                self._debug['entries']['arr'].append({'start': self._io.pos()})
-                _t_entries = self._root.FrameIndexEntry(self._io, self, self._root)
-                _t_entries._read()
-                self.entries.append(_t_entries)
-                self._debug['entries']['arr'][len(self.entries) - 1]['end'] = self._io.pos()
+                self.entries.append(MicrosoftNetworkMonitorV2.FrameIndexEntry(self._io, self, self._root))
                 i += 1
 
-            self._debug['entries']['end'] = self._io.pos()
 
 
     class FrameIndexEntry(KaitaiStruct):
         """Each index entry is just a pointer to where the frame data is
         stored in the file.
         """
-        SEQ_FIELDS = ["ofs"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['ofs']['start'] = self._io.pos()
             self.ofs = self._io.read_u4le()
-            self._debug['ofs']['end'] = self._io.pos()
 
         @property
         def body(self):
@@ -241,10 +195,7 @@ class MicrosoftNetworkMonitorV2(KaitaiStruct):
             io = self._root._io
             _pos = io.pos()
             io.seek(self.ofs)
-            self._debug['_m_body']['start'] = io.pos()
-            self._m_body = self._root.Frame(io, self, self._root)
-            self._m_body._read()
-            self._debug['_m_body']['end'] = io.pos()
+            self._m_body = MicrosoftNetworkMonitorV2.Frame(io, self, self._root)
             io.seek(_pos)
             return self._m_body if hasattr(self, '_m_body') else None
 
@@ -257,33 +208,23 @@ class MicrosoftNetworkMonitorV2(KaitaiStruct):
         .. seealso::
            Source - https://msdn.microsoft.com/en-us/library/windows/desktop/ee831821.aspx
         """
-        SEQ_FIELDS = ["ts_delta", "orig_len", "inc_len", "body"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['ts_delta']['start'] = self._io.pos()
             self.ts_delta = self._io.read_u8le()
-            self._debug['ts_delta']['end'] = self._io.pos()
-            self._debug['orig_len']['start'] = self._io.pos()
             self.orig_len = self._io.read_u4le()
-            self._debug['orig_len']['end'] = self._io.pos()
-            self._debug['inc_len']['start'] = self._io.pos()
             self.inc_len = self._io.read_u4le()
-            self._debug['inc_len']['end'] = self._io.pos()
-            self._debug['body']['start'] = self._io.pos()
             _on = self._root.mac_type
-            if _on == self._root.Linktype.ethernet:
+            if _on == MicrosoftNetworkMonitorV2.Linktype.ethernet:
                 self._raw_body = self._io.read_bytes(self.inc_len)
-                io = KaitaiStream(BytesIO(self._raw_body))
-                self.body = ethernet_frame.EthernetFrame(io)
-                self.body._read()
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = ethernet_frame.EthernetFrame(_io__raw_body)
             else:
                 self.body = self._io.read_bytes(self.inc_len)
-            self._debug['body']['end'] = self._io.pos()
 
 
     @property
@@ -294,12 +235,9 @@ class MicrosoftNetworkMonitorV2(KaitaiStruct):
 
         _pos = self._io.pos()
         self._io.seek(self.frame_table_ofs)
-        self._debug['_m_frame_table']['start'] = self._io.pos()
         self._raw__m_frame_table = self._io.read_bytes(self.frame_table_len)
-        io = KaitaiStream(BytesIO(self._raw__m_frame_table))
-        self._m_frame_table = self._root.FrameIndex(io, self, self._root)
-        self._m_frame_table._read()
-        self._debug['_m_frame_table']['end'] = self._io.pos()
+        _io__raw__m_frame_table = KaitaiStream(BytesIO(self._raw__m_frame_table))
+        self._m_frame_table = MicrosoftNetworkMonitorV2.FrameIndex(_io__raw__m_frame_table, self, self._root)
         self._io.seek(_pos)
         return self._m_frame_table if hasattr(self, '_m_frame_table') else None
 

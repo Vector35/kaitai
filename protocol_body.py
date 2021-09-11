@@ -1,19 +1,19 @@
 # This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
 from pkg_resources import parse_version
-from .kaitaistruct import __version__ as ks_version, KaitaiStruct, KaitaiStream, BytesIO
+from . import kaitaistruct
+from .kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
 from enum import Enum
-import collections
 
 
-if parse_version(ks_version) < parse_version('0.7'):
-    raise Exception("Incompatible Kaitai Struct Python API: 0.7 or later is required, but you have %s" % (ks_version))
+if parse_version(kaitaistruct.__version__) < parse_version('0.9'):
+    raise Exception("Incompatible Kaitai Struct Python API: 0.9 or later is required, but you have %s" % (kaitaistruct.__version__))
 
-from . import udp_datagram
 from . import icmp_packet
-from . import tcp_segment
+from . import udp_datagram
 from . import ipv4_packet
 from . import ipv6_packet
+from . import tcp_segment
 class ProtocolBody(KaitaiStruct):
     """Protocol body represents particular payload on transport level (OSI
     layer 4).
@@ -177,75 +177,54 @@ class ProtocolBody(KaitaiStruct):
         wesp = 141
         rohc = 142
         reserved_255 = 255
-    SEQ_FIELDS = ["body"]
     def __init__(self, protocol_num, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
         self._root = _root if _root else self
         self.protocol_num = protocol_num
-        self._debug = collections.defaultdict(dict)
+        self._read()
 
     def _read(self):
-        self._debug['body']['start'] = self._io.pos()
         _on = self.protocol
-        if _on == self._root.ProtocolEnum.ipv6_nonxt:
-            self.body = self._root.NoNextHeader(self._io, self, self._root)
-            self.body._read()
-        elif _on == self._root.ProtocolEnum.ipv4:
+        if _on == ProtocolBody.ProtocolEnum.ipv6_nonxt:
+            self.body = ProtocolBody.NoNextHeader(self._io, self, self._root)
+        elif _on == ProtocolBody.ProtocolEnum.ipv4:
             self.body = ipv4_packet.Ipv4Packet(self._io)
-            self.body._read()
-        elif _on == self._root.ProtocolEnum.udp:
+        elif _on == ProtocolBody.ProtocolEnum.udp:
             self.body = udp_datagram.UdpDatagram(self._io)
-            self.body._read()
-        elif _on == self._root.ProtocolEnum.icmp:
+        elif _on == ProtocolBody.ProtocolEnum.icmp:
             self.body = icmp_packet.IcmpPacket(self._io)
-            self.body._read()
-        elif _on == self._root.ProtocolEnum.hopopt:
-            self.body = self._root.OptionHopByHop(self._io, self, self._root)
-            self.body._read()
-        elif _on == self._root.ProtocolEnum.ipv6:
+        elif _on == ProtocolBody.ProtocolEnum.hopopt:
+            self.body = ProtocolBody.OptionHopByHop(self._io, self, self._root)
+        elif _on == ProtocolBody.ProtocolEnum.ipv6:
             self.body = ipv6_packet.Ipv6Packet(self._io)
-            self.body._read()
-        elif _on == self._root.ProtocolEnum.tcp:
+        elif _on == ProtocolBody.ProtocolEnum.tcp:
             self.body = tcp_segment.TcpSegment(self._io)
-            self.body._read()
-        self._debug['body']['end'] = self._io.pos()
 
     class NoNextHeader(KaitaiStruct):
         """Dummy type for IPv6 "no next header" type, which signifies end of headers chain."""
-        SEQ_FIELDS = []
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
             pass
 
 
     class OptionHopByHop(KaitaiStruct):
-        SEQ_FIELDS = ["next_header_type", "hdr_ext_len", "body", "next_header"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['next_header_type']['start'] = self._io.pos()
             self.next_header_type = self._io.read_u1()
-            self._debug['next_header_type']['end'] = self._io.pos()
-            self._debug['hdr_ext_len']['start'] = self._io.pos()
             self.hdr_ext_len = self._io.read_u1()
-            self._debug['hdr_ext_len']['end'] = self._io.pos()
-            self._debug['body']['start'] = self._io.pos()
             self.body = self._io.read_bytes((self.hdr_ext_len - 1))
-            self._debug['body']['end'] = self._io.pos()
-            self._debug['next_header']['start'] = self._io.pos()
             self.next_header = ProtocolBody(self.next_header_type, self._io)
-            self.next_header._read()
-            self._debug['next_header']['end'] = self._io.pos()
 
 
     @property
@@ -253,7 +232,7 @@ class ProtocolBody(KaitaiStruct):
         if hasattr(self, '_m_protocol'):
             return self._m_protocol if hasattr(self, '_m_protocol') else None
 
-        self._m_protocol = KaitaiStream.resolve_enum(self._root.ProtocolEnum, self.protocol_num)
+        self._m_protocol = KaitaiStream.resolve_enum(ProtocolBody.ProtocolEnum, self.protocol_num)
         return self._m_protocol if hasattr(self, '_m_protocol') else None
 
 

@@ -1,13 +1,13 @@
 # This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
 from pkg_resources import parse_version
-from .kaitaistruct import __version__ as ks_version, KaitaiStruct, KaitaiStream, BytesIO
+from . import kaitaistruct
+from .kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
 from enum import Enum
-import collections
 
 
-if parse_version(ks_version) < parse_version('0.7'):
-    raise Exception("Incompatible Kaitai Struct Python API: 0.7 or later is required, but you have %s" % (ks_version))
+if parse_version(kaitaistruct.__version__) < parse_version('0.9'):
+    raise Exception("Incompatible Kaitai Struct Python API: 0.9 or later is required, but you have %s" % (kaitaistruct.__version__))
 
 class RubyMarshal(KaitaiStruct):
     """Ruby's Marshal module allows serialization and deserialization of
@@ -48,47 +48,31 @@ class RubyMarshal(KaitaiStruct):
         packed_int = 105
         bignum = 108
         ruby_hash = 123
-    SEQ_FIELDS = ["version", "records"]
     def __init__(self, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
         self._root = _root if _root else self
-        self._debug = collections.defaultdict(dict)
+        self._read()
 
     def _read(self):
-        self._debug['version']['start'] = self._io.pos()
-        self.version = self._io.ensure_fixed_contents(b"\x04\x08")
-        self._debug['version']['end'] = self._io.pos()
-        self._debug['records']['start'] = self._io.pos()
-        self.records = self._root.Record(self._io, self, self._root)
-        self.records._read()
-        self._debug['records']['end'] = self._io.pos()
+        self.version = self._io.read_bytes(2)
+        if not self.version == b"\x04\x08":
+            raise kaitaistruct.ValidationNotEqualError(b"\x04\x08", self.version, self._io, u"/seq/0")
+        self.records = RubyMarshal.Record(self._io, self, self._root)
 
     class RubyArray(KaitaiStruct):
-        SEQ_FIELDS = ["num_elements", "elements"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['num_elements']['start'] = self._io.pos()
-            self.num_elements = self._root.PackedInt(self._io, self, self._root)
-            self.num_elements._read()
-            self._debug['num_elements']['end'] = self._io.pos()
-            self._debug['elements']['start'] = self._io.pos()
+            self.num_elements = RubyMarshal.PackedInt(self._io, self, self._root)
             self.elements = [None] * (self.num_elements.value)
             for i in range(self.num_elements.value):
-                if not 'arr' in self._debug['elements']:
-                    self._debug['elements']['arr'] = []
-                self._debug['elements']['arr'].append({'start': self._io.pos()})
-                _t_elements = self._root.Record(self._io, self, self._root)
-                _t_elements._read()
-                self.elements[i] = _t_elements
-                self._debug['elements']['arr'][i]['end'] = self._io.pos()
+                self.elements[i] = RubyMarshal.Record(self._io, self, self._root)
 
-            self._debug['elements']['end'] = self._io.pos()
 
 
     class Bignum(KaitaiStruct):
@@ -96,24 +80,16 @@ class RubyMarshal(KaitaiStruct):
         .. seealso::
            Source - https://docs.ruby-lang.org/en/2.4.0/marshal_rdoc.html#label-Bignum
         """
-        SEQ_FIELDS = ["sign", "len_div_2", "body"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['sign']['start'] = self._io.pos()
             self.sign = self._io.read_u1()
-            self._debug['sign']['end'] = self._io.pos()
-            self._debug['len_div_2']['start'] = self._io.pos()
-            self.len_div_2 = self._root.PackedInt(self._io, self, self._root)
-            self.len_div_2._read()
-            self._debug['len_div_2']['end'] = self._io.pos()
-            self._debug['body']['start'] = self._io.pos()
+            self.len_div_2 = RubyMarshal.PackedInt(self._io, self, self._root)
             self.body = self._io.read_bytes((self.len_div_2.value * 2))
-            self._debug['body']['end'] = self._io.pos()
 
 
     class RubyStruct(KaitaiStruct):
@@ -121,34 +97,19 @@ class RubyMarshal(KaitaiStruct):
         .. seealso::
            Source - https://docs.ruby-lang.org/en/2.4.0/marshal_rdoc.html#label-Struct
         """
-        SEQ_FIELDS = ["name", "num_members", "members"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['name']['start'] = self._io.pos()
-            self.name = self._root.Record(self._io, self, self._root)
-            self.name._read()
-            self._debug['name']['end'] = self._io.pos()
-            self._debug['num_members']['start'] = self._io.pos()
-            self.num_members = self._root.PackedInt(self._io, self, self._root)
-            self.num_members._read()
-            self._debug['num_members']['end'] = self._io.pos()
-            self._debug['members']['start'] = self._io.pos()
+            self.name = RubyMarshal.Record(self._io, self, self._root)
+            self.num_members = RubyMarshal.PackedInt(self._io, self, self._root)
             self.members = [None] * (self.num_members.value)
             for i in range(self.num_members.value):
-                if not 'arr' in self._debug['members']:
-                    self._debug['members']['arr'] = []
-                self._debug['members']['arr'].append({'start': self._io.pos()})
-                _t_members = self._root.Pair(self._io, self, self._root)
-                _t_members._read()
-                self.members[i] = _t_members
-                self._debug['members']['arr'][i]['end'] = self._io.pos()
+                self.members[i] = RubyMarshal.Pair(self._io, self, self._root)
 
-            self._debug['members']['end'] = self._io.pos()
 
 
     class RubySymbol(KaitaiStruct):
@@ -156,21 +117,15 @@ class RubyMarshal(KaitaiStruct):
         .. seealso::
            Source - https://docs.ruby-lang.org/en/2.4.0/marshal_rdoc.html#label-Symbols+and+Byte+Sequence
         """
-        SEQ_FIELDS = ["len", "name"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['len']['start'] = self._io.pos()
-            self.len = self._root.PackedInt(self._io, self, self._root)
-            self.len._read()
-            self._debug['len']['end'] = self._io.pos()
-            self._debug['name']['start'] = self._io.pos()
+            self.len = RubyMarshal.PackedInt(self._io, self, self._root)
             self.name = (self._io.read_bytes(self.len.value)).decode(u"UTF-8")
-            self._debug['name']['end'] = self._io.pos()
 
 
     class PackedInt(KaitaiStruct):
@@ -203,18 +158,14 @@ class RubyMarshal(KaitaiStruct):
         .. seealso::
            Source - https://docs.ruby-lang.org/en/2.4.0/marshal_rdoc.html#label-Fixnum+and+long
         """
-        SEQ_FIELDS = ["code", "encoded", "encoded2"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['code']['start'] = self._io.pos()
             self.code = self._io.read_u1()
-            self._debug['code']['end'] = self._io.pos()
-            self._debug['encoded']['start'] = self._io.pos()
             _on = self.code
             if _on == 4:
                 self.encoded = self._io.read_u4le()
@@ -232,14 +183,11 @@ class RubyMarshal(KaitaiStruct):
                 self.encoded = self._io.read_u1()
             elif _on == 254:
                 self.encoded = self._io.read_u2le()
-            self._debug['encoded']['end'] = self._io.pos()
-            self._debug['encoded2']['start'] = self._io.pos()
             _on = self.code
             if _on == 3:
                 self.encoded2 = self._io.read_u1()
             elif _on == 253:
                 self.encoded2 = self._io.read_u1()
-            self._debug['encoded2']['end'] = self._io.pos()
 
         @property
         def is_immediate(self):
@@ -259,22 +207,15 @@ class RubyMarshal(KaitaiStruct):
 
 
     class Pair(KaitaiStruct):
-        SEQ_FIELDS = ["key", "value"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['key']['start'] = self._io.pos()
-            self.key = self._root.Record(self._io, self, self._root)
-            self.key._read()
-            self._debug['key']['end'] = self._io.pos()
-            self._debug['value']['start'] = self._io.pos()
-            self.value = self._root.Record(self._io, self, self._root)
-            self.value._read()
-            self._debug['value']['end'] = self._io.pos()
+            self.key = RubyMarshal.Record(self._io, self, self._root)
+            self.value = RubyMarshal.Record(self._io, self, self._root)
 
 
     class InstanceVar(KaitaiStruct):
@@ -282,34 +223,19 @@ class RubyMarshal(KaitaiStruct):
         .. seealso::
            Source - https://docs.ruby-lang.org/en/2.4.0/marshal_rdoc.html#label-Instance+Variables
         """
-        SEQ_FIELDS = ["obj", "num_vars", "vars"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['obj']['start'] = self._io.pos()
-            self.obj = self._root.Record(self._io, self, self._root)
-            self.obj._read()
-            self._debug['obj']['end'] = self._io.pos()
-            self._debug['num_vars']['start'] = self._io.pos()
-            self.num_vars = self._root.PackedInt(self._io, self, self._root)
-            self.num_vars._read()
-            self._debug['num_vars']['end'] = self._io.pos()
-            self._debug['vars']['start'] = self._io.pos()
+            self.obj = RubyMarshal.Record(self._io, self, self._root)
+            self.num_vars = RubyMarshal.PackedInt(self._io, self, self._root)
             self.vars = [None] * (self.num_vars.value)
             for i in range(self.num_vars.value):
-                if not 'arr' in self._debug['vars']:
-                    self._debug['vars']['arr'] = []
-                self._debug['vars']['arr'].append({'start': self._io.pos()})
-                _t_vars = self._root.Pair(self._io, self, self._root)
-                _t_vars._read()
-                self.vars[i] = _t_vars
-                self._debug['vars']['arr'][i]['end'] = self._io.pos()
+                self.vars[i] = RubyMarshal.Pair(self._io, self, self._root)
 
-            self._debug['vars']['end'] = self._io.pos()
 
 
     class Record(KaitaiStruct):
@@ -317,47 +243,33 @@ class RubyMarshal(KaitaiStruct):
         (`code`) and contents. If necessary, additional info as parsed
         as `body`, to be determined by `code`.
         """
-        SEQ_FIELDS = ["code", "body"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['code']['start'] = self._io.pos()
-            self.code = KaitaiStream.resolve_enum(self._root.Codes, self._io.read_u1())
-            self._debug['code']['end'] = self._io.pos()
-            self._debug['body']['start'] = self._io.pos()
+            self.code = KaitaiStream.resolve_enum(RubyMarshal.Codes, self._io.read_u1())
             _on = self.code
-            if _on == self._root.Codes.packed_int:
-                self.body = self._root.PackedInt(self._io, self, self._root)
-                self.body._read()
-            elif _on == self._root.Codes.bignum:
-                self.body = self._root.Bignum(self._io, self, self._root)
-                self.body._read()
-            elif _on == self._root.Codes.ruby_array:
-                self.body = self._root.RubyArray(self._io, self, self._root)
-                self.body._read()
-            elif _on == self._root.Codes.ruby_symbol_link:
-                self.body = self._root.PackedInt(self._io, self, self._root)
-                self.body._read()
-            elif _on == self._root.Codes.ruby_struct:
-                self.body = self._root.RubyStruct(self._io, self, self._root)
-                self.body._read()
-            elif _on == self._root.Codes.ruby_string:
-                self.body = self._root.RubyString(self._io, self, self._root)
-                self.body._read()
-            elif _on == self._root.Codes.instance_var:
-                self.body = self._root.InstanceVar(self._io, self, self._root)
-                self.body._read()
-            elif _on == self._root.Codes.ruby_hash:
-                self.body = self._root.RubyHash(self._io, self, self._root)
-                self.body._read()
-            elif _on == self._root.Codes.ruby_symbol:
-                self.body = self._root.RubySymbol(self._io, self, self._root)
-                self.body._read()
-            self._debug['body']['end'] = self._io.pos()
+            if _on == RubyMarshal.Codes.packed_int:
+                self.body = RubyMarshal.PackedInt(self._io, self, self._root)
+            elif _on == RubyMarshal.Codes.bignum:
+                self.body = RubyMarshal.Bignum(self._io, self, self._root)
+            elif _on == RubyMarshal.Codes.ruby_array:
+                self.body = RubyMarshal.RubyArray(self._io, self, self._root)
+            elif _on == RubyMarshal.Codes.ruby_symbol_link:
+                self.body = RubyMarshal.PackedInt(self._io, self, self._root)
+            elif _on == RubyMarshal.Codes.ruby_struct:
+                self.body = RubyMarshal.RubyStruct(self._io, self, self._root)
+            elif _on == RubyMarshal.Codes.ruby_string:
+                self.body = RubyMarshal.RubyString(self._io, self, self._root)
+            elif _on == RubyMarshal.Codes.instance_var:
+                self.body = RubyMarshal.InstanceVar(self._io, self, self._root)
+            elif _on == RubyMarshal.Codes.ruby_hash:
+                self.body = RubyMarshal.RubyHash(self._io, self, self._root)
+            elif _on == RubyMarshal.Codes.ruby_symbol:
+                self.body = RubyMarshal.RubySymbol(self._io, self, self._root)
 
 
     class RubyHash(KaitaiStruct):
@@ -365,30 +277,18 @@ class RubyMarshal(KaitaiStruct):
         .. seealso::
            Source - https://docs.ruby-lang.org/en/2.4.0/marshal_rdoc.html#label-Hash+and+Hash+with+Default+Value
         """
-        SEQ_FIELDS = ["num_pairs", "pairs"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['num_pairs']['start'] = self._io.pos()
-            self.num_pairs = self._root.PackedInt(self._io, self, self._root)
-            self.num_pairs._read()
-            self._debug['num_pairs']['end'] = self._io.pos()
-            self._debug['pairs']['start'] = self._io.pos()
+            self.num_pairs = RubyMarshal.PackedInt(self._io, self, self._root)
             self.pairs = [None] * (self.num_pairs.value)
             for i in range(self.num_pairs.value):
-                if not 'arr' in self._debug['pairs']:
-                    self._debug['pairs']['arr'] = []
-                self._debug['pairs']['arr'].append({'start': self._io.pos()})
-                _t_pairs = self._root.Pair(self._io, self, self._root)
-                _t_pairs._read()
-                self.pairs[i] = _t_pairs
-                self._debug['pairs']['arr'][i]['end'] = self._io.pos()
+                self.pairs[i] = RubyMarshal.Pair(self._io, self, self._root)
 
-            self._debug['pairs']['end'] = self._io.pos()
 
 
     class RubyString(KaitaiStruct):
@@ -396,21 +296,15 @@ class RubyMarshal(KaitaiStruct):
         .. seealso::
            Source - https://docs.ruby-lang.org/en/2.4.0/marshal_rdoc.html#label-String
         """
-        SEQ_FIELDS = ["len", "body"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['len']['start'] = self._io.pos()
-            self.len = self._root.PackedInt(self._io, self, self._root)
-            self.len._read()
-            self._debug['len']['end'] = self._io.pos()
-            self._debug['body']['start'] = self._io.pos()
+            self.len = RubyMarshal.PackedInt(self._io, self, self._root)
             self.body = self._io.read_bytes(self.len.value)
-            self._debug['body']['end'] = self._io.pos()
 
 
 

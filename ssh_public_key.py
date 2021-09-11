@@ -1,12 +1,12 @@
 # This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
 from pkg_resources import parse_version
-from .kaitaistruct import __version__ as ks_version, KaitaiStruct, KaitaiStream, BytesIO
-import collections
+from . import kaitaistruct
+from .kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
 
 
-if parse_version(ks_version) < parse_version('0.7'):
-    raise Exception("Incompatible Kaitai Struct Python API: 0.7 or later is required, but you have %s" % (ks_version))
+if parse_version(kaitaistruct.__version__) < parse_version('0.9'):
+    raise Exception("Incompatible Kaitai Struct Python API: 0.9 or later is required, but you have %s" % (kaitaistruct.__version__))
 
 class SshPublicKey(KaitaiStruct):
     """SSH public keys are encoded in a special binary format, typically represented
@@ -22,55 +22,38 @@ class SshPublicKey(KaitaiStruct):
     .. seealso::
        Source - https://github.com/openssh/openssh-portable/blob/master/sshkey.c#L1970
     """
-    SEQ_FIELDS = ["key_name", "body"]
     def __init__(self, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
         self._root = _root if _root else self
-        self._debug = collections.defaultdict(dict)
+        self._read()
 
     def _read(self):
-        self._debug['key_name']['start'] = self._io.pos()
-        self.key_name = self._root.Cstring(self._io, self, self._root)
-        self.key_name._read()
-        self._debug['key_name']['end'] = self._io.pos()
-        self._debug['body']['start'] = self._io.pos()
+        self.key_name = SshPublicKey.Cstring(self._io, self, self._root)
         _on = self.key_name.value
         if _on == u"ssh-rsa":
-            self.body = self._root.KeyRsa(self._io, self, self._root)
-            self.body._read()
+            self.body = SshPublicKey.KeyRsa(self._io, self, self._root)
         elif _on == u"ecdsa-sha2-nistp256":
-            self.body = self._root.KeyEcdsa(self._io, self, self._root)
-            self.body._read()
+            self.body = SshPublicKey.KeyEcdsa(self._io, self, self._root)
         elif _on == u"ssh-ed25519":
-            self.body = self._root.KeyEd25519(self._io, self, self._root)
-            self.body._read()
+            self.body = SshPublicKey.KeyEd25519(self._io, self, self._root)
         elif _on == u"ssh-dss":
-            self.body = self._root.KeyDsa(self._io, self, self._root)
-            self.body._read()
-        self._debug['body']['end'] = self._io.pos()
+            self.body = SshPublicKey.KeyDsa(self._io, self, self._root)
 
     class KeyRsa(KaitaiStruct):
         """
         .. seealso::
            Source - https://github.com/openssh/openssh-portable/blob/master/sshkey.c#L2011-L2028
         """
-        SEQ_FIELDS = ["rsa_e", "rsa_n"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['rsa_e']['start'] = self._io.pos()
-            self.rsa_e = self._root.Bignum2(self._io, self, self._root)
-            self.rsa_e._read()
-            self._debug['rsa_e']['end'] = self._io.pos()
-            self._debug['rsa_n']['start'] = self._io.pos()
-            self.rsa_n = self._root.Bignum2(self._io, self, self._root)
-            self.rsa_n._read()
-            self._debug['rsa_n']['end'] = self._io.pos()
+            self.rsa_e = SshPublicKey.Bignum2(self._io, self, self._root)
+            self.rsa_n = SshPublicKey.Bignum2(self._io, self, self._root)
 
         @property
         def key_length(self):
@@ -87,20 +70,15 @@ class SshPublicKey(KaitaiStruct):
         .. seealso::
            Source - https://github.com/openssh/openssh-portable/blob/master/sshkey.c#L2111-L2124
         """
-        SEQ_FIELDS = ["len_pk", "pk"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['len_pk']['start'] = self._io.pos()
             self.len_pk = self._io.read_u4be()
-            self._debug['len_pk']['end'] = self._io.pos()
-            self._debug['pk']['start'] = self._io.pos()
             self.pk = self._io.read_bytes(self.len_pk)
-            self._debug['pk']['end'] = self._io.pos()
 
 
     class KeyEcdsa(KaitaiStruct):
@@ -108,22 +86,15 @@ class SshPublicKey(KaitaiStruct):
         .. seealso::
            Source - https://github.com/openssh/openssh-portable/blob/master/sshkey.c#L2060-L2103
         """
-        SEQ_FIELDS = ["curve_name", "ec"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['curve_name']['start'] = self._io.pos()
-            self.curve_name = self._root.Cstring(self._io, self, self._root)
-            self.curve_name._read()
-            self._debug['curve_name']['end'] = self._io.pos()
-            self._debug['ec']['start'] = self._io.pos()
-            self.ec = self._root.EllipticCurve(self._io, self, self._root)
-            self.ec._read()
-            self._debug['ec']['end'] = self._io.pos()
+            self.curve_name = SshPublicKey.Cstring(self._io, self, self._root)
+            self.ec = SshPublicKey.EllipticCurve(self._io, self, self._root)
 
 
     class Cstring(KaitaiStruct):
@@ -134,20 +105,15 @@ class SshPublicKey(KaitaiStruct):
         .. seealso::
            Source - https://github.com/openssh/openssh-portable/blob/master/sshbuf-getput-basic.c#L181
         """
-        SEQ_FIELDS = ["len", "value"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['len']['start'] = self._io.pos()
             self.len = self._io.read_u4be()
-            self._debug['len']['end'] = self._io.pos()
-            self._debug['value']['start'] = self._io.pos()
             self.value = (self._io.read_bytes(self.len)).decode(u"ASCII")
-            self._debug['value']['end'] = self._io.pos()
 
 
     class KeyDsa(KaitaiStruct):
@@ -155,30 +121,17 @@ class SshPublicKey(KaitaiStruct):
         .. seealso::
            Source - https://github.com/openssh/openssh-portable/blob/master/sshkey.c#L2036-L2051
         """
-        SEQ_FIELDS = ["dsa_p", "dsa_q", "dsa_g", "dsa_pub_key"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['dsa_p']['start'] = self._io.pos()
-            self.dsa_p = self._root.Bignum2(self._io, self, self._root)
-            self.dsa_p._read()
-            self._debug['dsa_p']['end'] = self._io.pos()
-            self._debug['dsa_q']['start'] = self._io.pos()
-            self.dsa_q = self._root.Bignum2(self._io, self, self._root)
-            self.dsa_q._read()
-            self._debug['dsa_q']['end'] = self._io.pos()
-            self._debug['dsa_g']['start'] = self._io.pos()
-            self.dsa_g = self._root.Bignum2(self._io, self, self._root)
-            self.dsa_g._read()
-            self._debug['dsa_g']['end'] = self._io.pos()
-            self._debug['dsa_pub_key']['start'] = self._io.pos()
-            self.dsa_pub_key = self._root.Bignum2(self._io, self, self._root)
-            self.dsa_pub_key._read()
-            self._debug['dsa_pub_key']['end'] = self._io.pos()
+            self.dsa_p = SshPublicKey.Bignum2(self._io, self, self._root)
+            self.dsa_q = SshPublicKey.Bignum2(self._io, self, self._root)
+            self.dsa_g = SshPublicKey.Bignum2(self._io, self, self._root)
+            self.dsa_pub_key = SshPublicKey.Bignum2(self._io, self, self._root)
 
 
     class EllipticCurve(KaitaiStruct):
@@ -192,20 +145,15 @@ class SshPublicKey(KaitaiStruct):
            Source - https://github.com/openssh/openssh-portable/blob/master/sshbuf-getput-crypto.c#L90
            https://github.com/openssh/openssh-portable/blob/master/sshbuf-getput-crypto.c#L76
         """
-        SEQ_FIELDS = ["len", "body"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['len']['start'] = self._io.pos()
             self.len = self._io.read_u4be()
-            self._debug['len']['end'] = self._io.pos()
-            self._debug['body']['start'] = self._io.pos()
             self.body = self._io.read_bytes(self.len)
-            self._debug['body']['end'] = self._io.pos()
 
 
     class Bignum2(KaitaiStruct):
@@ -221,20 +169,15 @@ class SshPublicKey(KaitaiStruct):
            Source - https://github.com/openssh/openssh-portable/blob/master/sshbuf-getput-crypto.c#L35
            https://github.com/openssh/openssh-portable/blob/master/sshbuf-getput-basic.c#L431
         """
-        SEQ_FIELDS = ["len", "body"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['len']['start'] = self._io.pos()
             self.len = self._io.read_u4be()
-            self._debug['len']['end'] = self._io.pos()
-            self._debug['body']['start'] = self._io.pos()
             self.body = self._io.read_bytes(self.len)
-            self._debug['body']['end'] = self._io.pos()
 
         @property
         def length_in_bits(self):

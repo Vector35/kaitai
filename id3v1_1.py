@@ -1,13 +1,13 @@
 # This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
 from pkg_resources import parse_version
-from .kaitaistruct import __version__ as ks_version, KaitaiStruct, KaitaiStream, BytesIO
-import collections
+from . import kaitaistruct
+from .kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
 from enum import Enum
 
 
-if parse_version(ks_version) < parse_version('0.7'):
-    raise Exception("Incompatible Kaitai Struct Python API: 0.7 or later is required, but you have %s" % (ks_version))
+if parse_version(kaitaistruct.__version__) < parse_version('0.9'):
+    raise Exception("Incompatible Kaitai Struct Python API: 0.9 or later is required, but you have %s" % (kaitaistruct.__version__))
 
 class Id3v11(KaitaiStruct):
     """ID3v1.1 tag is a method to store simple metadata in .mp3 files. The
@@ -20,12 +20,11 @@ class Id3v11(KaitaiStruct):
     .. seealso::
        Source - http://id3.org/ID3v1
     """
-    SEQ_FIELDS = []
     def __init__(self, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
         self._root = _root if _root else self
-        self._debug = collections.defaultdict(dict)
+        self._read()
 
     def _read(self):
         pass
@@ -169,35 +168,22 @@ class Id3v11(KaitaiStruct):
             a_capella = 123
             euro_house = 124
             dance_hall = 125
-        SEQ_FIELDS = ["magic", "title", "artist", "album", "year", "comment", "genre"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['magic']['start'] = self._io.pos()
-            self.magic = self._io.ensure_fixed_contents(b"\x54\x41\x47")
-            self._debug['magic']['end'] = self._io.pos()
-            self._debug['title']['start'] = self._io.pos()
+            self.magic = self._io.read_bytes(3)
+            if not self.magic == b"\x54\x41\x47":
+                raise kaitaistruct.ValidationNotEqualError(b"\x54\x41\x47", self.magic, self._io, u"/types/id3_v1_1_tag/seq/0")
             self.title = self._io.read_bytes(30)
-            self._debug['title']['end'] = self._io.pos()
-            self._debug['artist']['start'] = self._io.pos()
             self.artist = self._io.read_bytes(30)
-            self._debug['artist']['end'] = self._io.pos()
-            self._debug['album']['start'] = self._io.pos()
             self.album = self._io.read_bytes(30)
-            self._debug['album']['end'] = self._io.pos()
-            self._debug['year']['start'] = self._io.pos()
             self.year = (self._io.read_bytes(4)).decode(u"ASCII")
-            self._debug['year']['end'] = self._io.pos()
-            self._debug['comment']['start'] = self._io.pos()
             self.comment = self._io.read_bytes(30)
-            self._debug['comment']['end'] = self._io.pos()
-            self._debug['genre']['start'] = self._io.pos()
-            self.genre = KaitaiStream.resolve_enum(self._root.Id3V11Tag.GenreEnum, self._io.read_u1())
-            self._debug['genre']['end'] = self._io.pos()
+            self.genre = KaitaiStream.resolve_enum(Id3v11.Id3V11Tag.GenreEnum, self._io.read_u1())
 
 
     @property
@@ -207,10 +193,7 @@ class Id3v11(KaitaiStruct):
 
         _pos = self._io.pos()
         self._io.seek((self._io.size() - 128))
-        self._debug['_m_id3v1_tag']['start'] = self._io.pos()
-        self._m_id3v1_tag = self._root.Id3V11Tag(self._io, self, self._root)
-        self._m_id3v1_tag._read()
-        self._debug['_m_id3v1_tag']['end'] = self._io.pos()
+        self._m_id3v1_tag = Id3v11.Id3V11Tag(self._io, self, self._root)
         self._io.seek(_pos)
         return self._m_id3v1_tag if hasattr(self, '_m_id3v1_tag') else None
 

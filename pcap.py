@@ -1,13 +1,13 @@
 # This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
 from pkg_resources import parse_version
-from .kaitaistruct import __version__ as ks_version, KaitaiStruct, KaitaiStream, BytesIO
+from . import kaitaistruct
+from .kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
 from enum import Enum
-import collections
 
 
-if parse_version(ks_version) < parse_version('0.7'):
-    raise Exception("Incompatible Kaitai Struct Python API: 0.7 or later is required, but you have %s" % (ks_version))
+if parse_version(kaitaistruct.__version__) < parse_version('0.9'):
+    raise Exception("Incompatible Kaitai Struct Python API: 0.9 or later is required, but you have %s" % (kaitaistruct.__version__))
 
 from . import ethernet_frame
 from . import packet_ppi
@@ -126,67 +126,42 @@ class Pcap(KaitaiStruct):
         zwave_r3 = 262
         wattstopper_dlm = 263
         iso_14443 = 264
-    SEQ_FIELDS = ["hdr", "packets"]
     def __init__(self, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
         self._root = _root if _root else self
-        self._debug = collections.defaultdict(dict)
+        self._read()
 
     def _read(self):
-        self._debug['hdr']['start'] = self._io.pos()
-        self.hdr = self._root.Header(self._io, self, self._root)
-        self.hdr._read()
-        self._debug['hdr']['end'] = self._io.pos()
-        self._debug['packets']['start'] = self._io.pos()
+        self.hdr = Pcap.Header(self._io, self, self._root)
         self.packets = []
         i = 0
         while not self._io.is_eof():
-            if not 'arr' in self._debug['packets']:
-                self._debug['packets']['arr'] = []
-            self._debug['packets']['arr'].append({'start': self._io.pos()})
-            _t_packets = self._root.Packet(self._io, self, self._root)
-            _t_packets._read()
-            self.packets.append(_t_packets)
-            self._debug['packets']['arr'][len(self.packets) - 1]['end'] = self._io.pos()
+            self.packets.append(Pcap.Packet(self._io, self, self._root))
             i += 1
 
-        self._debug['packets']['end'] = self._io.pos()
 
     class Header(KaitaiStruct):
         """
         .. seealso::
            Source - https://wiki.wireshark.org/Development/LibpcapFileFormat#Global_Header
         """
-        SEQ_FIELDS = ["magic_number", "version_major", "version_minor", "thiszone", "sigfigs", "snaplen", "network"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['magic_number']['start'] = self._io.pos()
-            self.magic_number = self._io.ensure_fixed_contents(b"\xD4\xC3\xB2\xA1")
-            self._debug['magic_number']['end'] = self._io.pos()
-            self._debug['version_major']['start'] = self._io.pos()
+            self.magic_number = self._io.read_bytes(4)
+            if not self.magic_number == b"\xD4\xC3\xB2\xA1":
+                raise kaitaistruct.ValidationNotEqualError(b"\xD4\xC3\xB2\xA1", self.magic_number, self._io, u"/types/header/seq/0")
             self.version_major = self._io.read_u2le()
-            self._debug['version_major']['end'] = self._io.pos()
-            self._debug['version_minor']['start'] = self._io.pos()
             self.version_minor = self._io.read_u2le()
-            self._debug['version_minor']['end'] = self._io.pos()
-            self._debug['thiszone']['start'] = self._io.pos()
             self.thiszone = self._io.read_s4le()
-            self._debug['thiszone']['end'] = self._io.pos()
-            self._debug['sigfigs']['start'] = self._io.pos()
             self.sigfigs = self._io.read_u4le()
-            self._debug['sigfigs']['end'] = self._io.pos()
-            self._debug['snaplen']['start'] = self._io.pos()
             self.snaplen = self._io.read_u4le()
-            self._debug['snaplen']['end'] = self._io.pos()
-            self._debug['network']['start'] = self._io.pos()
-            self.network = KaitaiStream.resolve_enum(self._root.Linktype, self._io.read_u4le())
-            self._debug['network']['end'] = self._io.pos()
+            self.network = KaitaiStream.resolve_enum(Pcap.Linktype, self._io.read_u4le())
 
 
     class Packet(KaitaiStruct):
@@ -194,41 +169,28 @@ class Pcap(KaitaiStruct):
         .. seealso::
            Source - https://wiki.wireshark.org/Development/LibpcapFileFormat#Record_.28Packet.29_Header
         """
-        SEQ_FIELDS = ["ts_sec", "ts_usec", "incl_len", "orig_len", "body"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['ts_sec']['start'] = self._io.pos()
             self.ts_sec = self._io.read_u4le()
-            self._debug['ts_sec']['end'] = self._io.pos()
-            self._debug['ts_usec']['start'] = self._io.pos()
             self.ts_usec = self._io.read_u4le()
-            self._debug['ts_usec']['end'] = self._io.pos()
-            self._debug['incl_len']['start'] = self._io.pos()
             self.incl_len = self._io.read_u4le()
-            self._debug['incl_len']['end'] = self._io.pos()
-            self._debug['orig_len']['start'] = self._io.pos()
             self.orig_len = self._io.read_u4le()
-            self._debug['orig_len']['end'] = self._io.pos()
-            self._debug['body']['start'] = self._io.pos()
             _on = self._root.hdr.network
-            if _on == self._root.Linktype.ppi:
+            if _on == Pcap.Linktype.ppi:
                 self._raw_body = self._io.read_bytes(self.incl_len)
-                io = KaitaiStream(BytesIO(self._raw_body))
-                self.body = packet_ppi.PacketPpi(io)
-                self.body._read()
-            elif _on == self._root.Linktype.ethernet:
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = packet_ppi.PacketPpi(_io__raw_body)
+            elif _on == Pcap.Linktype.ethernet:
                 self._raw_body = self._io.read_bytes(self.incl_len)
-                io = KaitaiStream(BytesIO(self._raw_body))
-                self.body = ethernet_frame.EthernetFrame(io)
-                self.body._read()
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = ethernet_frame.EthernetFrame(_io__raw_body)
             else:
                 self.body = self._io.read_bytes(self.incl_len)
-            self._debug['body']['end'] = self._io.pos()
 
 
 

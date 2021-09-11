@@ -1,13 +1,13 @@
 # This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
 from pkg_resources import parse_version
-from .kaitaistruct import __version__ as ks_version, KaitaiStruct, KaitaiStream, BytesIO
-import collections
+from . import kaitaistruct
+from .kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
 from enum import Enum
 
 
-if parse_version(ks_version) < parse_version('0.7'):
-    raise Exception("Incompatible Kaitai Struct Python API: 0.7 or later is required, but you have %s" % (ks_version))
+if parse_version(kaitaistruct.__version__) < parse_version('0.9'):
+    raise Exception("Incompatible Kaitai Struct Python API: 0.9 or later is required, but you have %s" % (kaitaistruct.__version__))
 
 class WindowsResourceFile(KaitaiStruct):
     """Windows resource file (.res) are binary bundles of
@@ -35,28 +35,19 @@ class WindowsResourceFile(KaitaiStruct):
     definitions. RC tool ensures that first resource (#0) is always
     empty.
     """
-    SEQ_FIELDS = ["resources"]
     def __init__(self, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
         self._root = _root if _root else self
-        self._debug = collections.defaultdict(dict)
+        self._read()
 
     def _read(self):
-        self._debug['resources']['start'] = self._io.pos()
         self.resources = []
         i = 0
         while not self._io.is_eof():
-            if not 'arr' in self._debug['resources']:
-                self._debug['resources']['arr'] = []
-            self._debug['resources']['arr'].append({'start': self._io.pos()})
-            _t_resources = self._root.Resource(self._io, self, self._root)
-            _t_resources._read()
-            self.resources.append(_t_resources)
-            self._debug['resources']['arr'][len(self.resources) - 1]['end'] = self._io.pos()
+            self.resources.append(WindowsResourceFile.Resource(self._io, self, self._root))
             i += 1
 
-        self._debug['resources']['end'] = self._io.pos()
 
     class Resource(KaitaiStruct):
         """Each resource has a `type` and a `name`, which can be used to
@@ -89,52 +80,25 @@ class WindowsResourceFile(KaitaiStruct):
             aniicon = 22
             html = 23
             manifest = 24
-        SEQ_FIELDS = ["value_size", "header_size", "type", "name", "padding1", "format_version", "flags", "language", "value_version", "characteristics", "value", "padding2"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['value_size']['start'] = self._io.pos()
             self.value_size = self._io.read_u4le()
-            self._debug['value_size']['end'] = self._io.pos()
-            self._debug['header_size']['start'] = self._io.pos()
             self.header_size = self._io.read_u4le()
-            self._debug['header_size']['end'] = self._io.pos()
-            self._debug['type']['start'] = self._io.pos()
-            self.type = self._root.UnicodeOrId(self._io, self, self._root)
-            self.type._read()
-            self._debug['type']['end'] = self._io.pos()
-            self._debug['name']['start'] = self._io.pos()
-            self.name = self._root.UnicodeOrId(self._io, self, self._root)
-            self.name._read()
-            self._debug['name']['end'] = self._io.pos()
-            self._debug['padding1']['start'] = self._io.pos()
+            self.type = WindowsResourceFile.UnicodeOrId(self._io, self, self._root)
+            self.name = WindowsResourceFile.UnicodeOrId(self._io, self, self._root)
             self.padding1 = self._io.read_bytes(((4 - self._io.pos()) % 4))
-            self._debug['padding1']['end'] = self._io.pos()
-            self._debug['format_version']['start'] = self._io.pos()
             self.format_version = self._io.read_u4le()
-            self._debug['format_version']['end'] = self._io.pos()
-            self._debug['flags']['start'] = self._io.pos()
             self.flags = self._io.read_u2le()
-            self._debug['flags']['end'] = self._io.pos()
-            self._debug['language']['start'] = self._io.pos()
             self.language = self._io.read_u2le()
-            self._debug['language']['end'] = self._io.pos()
-            self._debug['value_version']['start'] = self._io.pos()
             self.value_version = self._io.read_u4le()
-            self._debug['value_version']['end'] = self._io.pos()
-            self._debug['characteristics']['start'] = self._io.pos()
             self.characteristics = self._io.read_u4le()
-            self._debug['characteristics']['end'] = self._io.pos()
-            self._debug['value']['start'] = self._io.pos()
             self.value = self._io.read_bytes(self.value_size)
-            self._debug['value']['end'] = self._io.pos()
-            self._debug['padding2']['start'] = self._io.pos()
             self.padding2 = self._io.read_bytes(((4 - self._io.pos()) % 4))
-            self._debug['padding2']['end'] = self._io.pos()
 
         @property
         def type_as_predef(self):
@@ -147,7 +111,7 @@ class WindowsResourceFile(KaitaiStruct):
                 return self._m_type_as_predef if hasattr(self, '_m_type_as_predef') else None
 
             if  ((not (self.type.is_string)) and (self.type.as_numeric <= 255)) :
-                self._m_type_as_predef = KaitaiStream.resolve_enum(self._root.Resource.PredefTypes, self.type.as_numeric)
+                self._m_type_as_predef = KaitaiStream.resolve_enum(WindowsResourceFile.Resource.PredefTypes, self.type.as_numeric)
 
             return self._m_type_as_predef if hasattr(self, '_m_type_as_predef') else None
 
@@ -159,44 +123,31 @@ class WindowsResourceFile(KaitaiStruct):
         Use `is_string` to check which kind we've got here, and then use
         `as_numeric` or `as_string` to get relevant value.
         """
-        SEQ_FIELDS = ["first", "as_numeric", "rest", "noop"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
             if self.save_pos1 >= 0:
-                self._debug['first']['start'] = self._io.pos()
                 self.first = self._io.read_u2le()
-                self._debug['first']['end'] = self._io.pos()
 
             if not (self.is_string):
-                self._debug['as_numeric']['start'] = self._io.pos()
                 self.as_numeric = self._io.read_u2le()
-                self._debug['as_numeric']['end'] = self._io.pos()
 
             if self.is_string:
-                self._debug['rest']['start'] = self._io.pos()
                 self.rest = []
                 i = 0
                 while True:
-                    if not 'arr' in self._debug['rest']:
-                        self._debug['rest']['arr'] = []
-                    self._debug['rest']['arr'].append({'start': self._io.pos()})
                     _ = self._io.read_u2le()
                     self.rest.append(_)
-                    self._debug['rest']['arr'][len(self.rest) - 1]['end'] = self._io.pos()
                     if _ == 0:
                         break
                     i += 1
-                self._debug['rest']['end'] = self._io.pos()
 
             if  ((self.is_string) and (self.save_pos2 >= 0)) :
-                self._debug['noop']['start'] = self._io.pos()
                 self.noop = self._io.read_bytes(0)
-                self._debug['noop']['end'] = self._io.pos()
 
 
         @property
@@ -231,9 +182,7 @@ class WindowsResourceFile(KaitaiStruct):
             if self.is_string:
                 _pos = self._io.pos()
                 self._io.seek(self.save_pos1)
-                self._debug['_m_as_string']['start'] = self._io.pos()
                 self._m_as_string = (self._io.read_bytes(((self.save_pos2 - self.save_pos1) - 2))).decode(u"UTF-16LE")
-                self._debug['_m_as_string']['end'] = self._io.pos()
                 self._io.seek(_pos)
 
             return self._m_as_string if hasattr(self, '_m_as_string') else None

@@ -1,7 +1,7 @@
 import itertools
 import sys
 import struct
-from io import BytesIO, SEEK_CUR, SEEK_END  # noqa
+from io import open, BytesIO, SEEK_CUR, SEEK_END  # noqa
 
 PY2 = sys.version_info[0] == 2
 
@@ -12,7 +12,7 @@ PY2 = sys.version_info[0] == 2
 #   KS runtime library by this version number;
 # * distribution utils (setup.py) use this when packaging for PyPI
 #
-__version__ = '0.8'
+__version__ = '0.9'
 
 
 class KaitaiStruct(object):
@@ -33,7 +33,7 @@ class KaitaiStruct(object):
         f = open(filename, 'rb')
         try:
             return cls(KaitaiStream(f))
-        except Exception as e:
+        except Exception:
             # close file descriptor, then reraise the exception
             f.close()
             raise
@@ -66,6 +66,9 @@ class KaitaiStream(object):
     # ========================================================================
 
     def is_eof(self):
+        if self.bits_left > 0:
+            return False
+
         io = self._io
         t = io.read(1)
         if t == b'':
@@ -218,7 +221,7 @@ class KaitaiStream(object):
         self.bits = 0
         self.bits_left = 0
 
-    def read_bits_int(self, n):
+    def read_bits_int_be(self, n):
         bits_needed = n - self.bits_left
         if bits_needed > 0:
             # 1 bit  => 1 byte
@@ -227,26 +230,48 @@ class KaitaiStream(object):
             bytes_needed = ((bits_needed - 1) // 8) + 1
             buf = self.read_bytes(bytes_needed)
             for byte in buf:
-                # Python 2 will get "byte" as one-character str, thus
-                # we need to convert it to integer manually; Python 3
-                # is fine as is.
-                if isinstance(byte, str):
-                    byte = ord(byte)
+                byte = KaitaiStream.int_from_byte(byte)
                 self.bits <<= 8
                 self.bits |= byte
                 self.bits_left += 8
 
         # raw mask with required number of 1s, starting from lowest bit
         mask = (1 << n) - 1
-        # shift mask to align with highest bits available in self.bits
+        # shift self.bits to align the highest bits with the mask & derive reading result
         shift_bits = self.bits_left - n
-        mask <<= shift_bits
-        # derive reading result
-        res = (self.bits & mask) >> shift_bits
+        res = (self.bits >> shift_bits) & mask
         # clear top bits that we've just read => AND with 1s
         self.bits_left -= n
         mask = (1 << self.bits_left) - 1
         self.bits &= mask
+
+        return res
+
+    # Unused since Kaitai Struct Compiler v0.9+ - compatibility with
+    # older versions.
+    def read_bits_int(self, n):
+        return self.read_bits_int_be(n)
+
+    def read_bits_int_le(self, n):
+        bits_needed = n - self.bits_left
+        if bits_needed > 0:
+            # 1 bit  => 1 byte
+            # 8 bits => 1 byte
+            # 9 bits => 2 bytes
+            bytes_needed = ((bits_needed - 1) // 8) + 1
+            buf = self.read_bytes(bytes_needed)
+            for byte in buf:
+                byte = KaitaiStream.int_from_byte(byte)
+                self.bits |= (byte << self.bits_left)
+                self.bits_left += 8
+
+        # raw mask with required number of 1s, starting from lowest bit
+        mask = (1 << n) - 1
+        # derive reading result
+        res = self.bits & mask
+        # remove bottom bits that we've just read by shifting
+        self.bits >>= n
+        self.bits_left -= n
 
         return res
 
@@ -303,31 +328,14 @@ class KaitaiStream(object):
 
     @staticmethod
     def bytes_strip_right(data, pad_byte):
-        new_len = len(data)
-        if PY2:
-            # data[...] must yield an integer, to compare with integer pad_byte
-            data = bytearray(data)
-
-        while new_len > 0 and data[new_len - 1] == pad_byte:
-            new_len -= 1
-
-        return data[:new_len]
+        return data.rstrip(KaitaiStream.byte_from_int(pad_byte))
 
     @staticmethod
     def bytes_terminate(data, term, include_term):
-        new_len = 0
-        max_len = len(data)
-        if PY2:
-            # data[...] must yield an integer, to compare with integer term
-            data = bytearray(data)
-
-        while new_len < max_len and data[new_len] != term:
-            new_len += 1
-
-        if include_term and new_len < max_len:
-            new_len += 1
-
-        return data[:new_len]
+        new_data, term_byte, _ = data.partition(KaitaiStream.byte_from_int(term))
+        if include_term:
+            new_data += term_byte
+        return new_data
 
     # ========================================================================
     # Byte array processing
@@ -368,6 +376,28 @@ class KaitaiStream(object):
     # ========================================================================
 
     @staticmethod
+    def int_from_byte(v):
+        if PY2:
+            return ord(v)
+        return v
+
+    @staticmethod
+    def byte_from_int(i):
+        return chr(i) if PY2 else bytes([i])
+
+    @staticmethod
+    def byte_array_index(data, i):
+        return KaitaiStream.int_from_byte(data[i])
+
+    @staticmethod
+    def byte_array_min(b):
+        return KaitaiStream.int_from_byte(min(b))
+
+    @staticmethod
+    def byte_array_max(b):
+        return KaitaiStream.int_from_byte(max(b))
+
+    @staticmethod
     def resolve_enum(enum_obj, value):
         """Resolves value using enum: if the value is not found in the map,
         we'll just use literal value per se. Works around problem with Python
@@ -375,5 +405,82 @@ class KaitaiStream(object):
         """
         try:
             return enum_obj(value)
-        except ValueError as e:
+        except ValueError:
             return value
+
+
+class KaitaiStructError(Exception):
+    """Common ancestor for all error originating from Kaitai Struct usage.
+    Stores KSY source path, pointing to an element supposedly guilty of
+    an error.
+    """
+    def __init__(self, msg, src_path):
+        super(KaitaiStructError, self).__init__("%s: %s" % (src_path, msg))
+        self.src_path = src_path
+
+
+class UndecidedEndiannessError(KaitaiStructError):
+    """Error that occurs when default endianness should be decided with
+    switch, but nothing matches (although using endianness expression
+    implies that there should be some positive result).
+    """
+    def __init__(self, src_path):
+        super(KaitaiStructError, self).__init__("unable to decide on endianness for a type", src_path)
+
+
+class ValidationFailedError(KaitaiStructError):
+    """Common ancestor for all validation failures. Stores pointer to
+    KaitaiStream IO object which was involved in an error.
+    """
+    def __init__(self, msg, io, src_path):
+        super(ValidationFailedError, self).__init__("at pos %d: validation failed: %s" % (io.pos(), msg), src_path)
+        self.io = io
+
+
+class ValidationNotEqualError(ValidationFailedError):
+    """Signals validation failure: we required "actual" value to be equal to
+    "expected", but it turned out that it's not.
+    """
+    def __init__(self, expected, actual, io, src_path):
+        super(ValidationNotEqualError, self).__init__("not equal, expected %s, but got %s" % (repr(expected), repr(actual)), io, src_path)
+        self.expected = expected
+        self.actual = actual
+
+
+class ValidationLessThanError(ValidationFailedError):
+    """Signals validation failure: we required "actual" value to be
+    greater than or equal to "min", but it turned out that it's not.
+    """
+    def __init__(self, min, actual, io, src_path):
+        super(ValidationLessThanError, self).__init__("not in range, min %s, but got %s" % (repr(min), repr(actual)), io, src_path)
+        self.min = min
+        self.actual = actual
+
+
+class ValidationGreaterThanError(ValidationFailedError):
+    """Signals validation failure: we required "actual" value to be
+    less than or equal to "max", but it turned out that it's not.
+    """
+    def __init__(self, max, actual, io, src_path):
+        super(ValidationGreaterThanError, self).__init__("not in range, max %s, but got %s" % (repr(max), repr(actual)), io, src_path)
+        self.max = max
+        self.actual = actual
+
+
+class ValidationNotAnyOfError(ValidationFailedError):
+    """Signals validation failure: we required "actual" value to be
+    from the list, but it turned out that it's not.
+    """
+    def __init__(self, actual, io, src_path):
+        super(ValidationNotAnyOfError, self).__init__("not any of the list, got %s" % (repr(actual)), io, src_path)
+        self.actual = actual
+
+
+class ValidationExprError(ValidationFailedError):
+    """Signals validation failure: we required "actual" value to match
+    the expression, but it turned out that it doesn't.
+    """
+    def __init__(self, actual, io, src_path):
+        super(ValidationExprError, self).__init__("not matching the expression, got %s" % (repr(actual)), io, src_path)
+        self.actual = actual
+

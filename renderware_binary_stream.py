@@ -1,13 +1,13 @@
 # This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
 from pkg_resources import parse_version
-from .kaitaistruct import __version__ as ks_version, KaitaiStruct, KaitaiStream, BytesIO
+from . import kaitaistruct
+from .kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
 from enum import Enum
-import collections
 
 
-if parse_version(ks_version) < parse_version('0.7'):
-    raise Exception("Incompatible Kaitai Struct Python API: 0.7 or later is required, but you have %s" % (ks_version))
+if parse_version(kaitaistruct.__version__) < parse_version('0.9'):
+    raise Exception("Incompatible Kaitai Struct Python API: 0.9 or later is required, but you have %s" % (kaitaistruct.__version__))
 
 class RenderwareBinaryStream(KaitaiStruct):
     """
@@ -183,84 +183,62 @@ class RenderwareBinaryStream(KaitaiStruct):
         breakable = 39056125
         frame = 39056126
         unused_16 = 39056127
-    SEQ_FIELDS = ["code", "size", "version", "body"]
     def __init__(self, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
         self._root = _root if _root else self
-        self._debug = collections.defaultdict(dict)
+        self._read()
 
     def _read(self):
-        self._debug['code']['start'] = self._io.pos()
-        self.code = KaitaiStream.resolve_enum(self._root.Sections, self._io.read_u4le())
-        self._debug['code']['end'] = self._io.pos()
-        self._debug['size']['start'] = self._io.pos()
+        self.code = KaitaiStream.resolve_enum(RenderwareBinaryStream.Sections, self._io.read_u4le())
         self.size = self._io.read_u4le()
-        self._debug['size']['end'] = self._io.pos()
-        self._debug['version']['start'] = self._io.pos()
-        self.version = self._io.read_u4le()
-        self._debug['version']['end'] = self._io.pos()
-        self._debug['body']['start'] = self._io.pos()
+        self.library_id_stamp = self._io.read_u4le()
         _on = self.code
-        if _on == self._root.Sections.geometry:
+        if _on == RenderwareBinaryStream.Sections.geometry:
             self._raw_body = self._io.read_bytes(self.size)
-            io = KaitaiStream(BytesIO(self._raw_body))
-            self.body = self._root.ListWithHeader(io, self, self._root)
-            self.body._read()
-        elif _on == self._root.Sections.texture_dictionary:
+            _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+            self.body = RenderwareBinaryStream.ListWithHeader(_io__raw_body, self, self._root)
+        elif _on == RenderwareBinaryStream.Sections.texture_dictionary:
             self._raw_body = self._io.read_bytes(self.size)
-            io = KaitaiStream(BytesIO(self._raw_body))
-            self.body = self._root.ListWithHeader(io, self, self._root)
-            self.body._read()
-        elif _on == self._root.Sections.geometry_list:
+            _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+            self.body = RenderwareBinaryStream.ListWithHeader(_io__raw_body, self, self._root)
+        elif _on == RenderwareBinaryStream.Sections.geometry_list:
             self._raw_body = self._io.read_bytes(self.size)
-            io = KaitaiStream(BytesIO(self._raw_body))
-            self.body = self._root.ListWithHeader(io, self, self._root)
-            self.body._read()
-        elif _on == self._root.Sections.texture_native:
+            _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+            self.body = RenderwareBinaryStream.ListWithHeader(_io__raw_body, self, self._root)
+        elif _on == RenderwareBinaryStream.Sections.texture_native:
             self._raw_body = self._io.read_bytes(self.size)
-            io = KaitaiStream(BytesIO(self._raw_body))
-            self.body = self._root.ListWithHeader(io, self, self._root)
-            self.body._read()
-        elif _on == self._root.Sections.clump:
+            _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+            self.body = RenderwareBinaryStream.ListWithHeader(_io__raw_body, self, self._root)
+        elif _on == RenderwareBinaryStream.Sections.clump:
             self._raw_body = self._io.read_bytes(self.size)
-            io = KaitaiStream(BytesIO(self._raw_body))
-            self.body = self._root.ListWithHeader(io, self, self._root)
-            self.body._read()
-        elif _on == self._root.Sections.frame_list:
+            _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+            self.body = RenderwareBinaryStream.ListWithHeader(_io__raw_body, self, self._root)
+        elif _on == RenderwareBinaryStream.Sections.frame_list:
             self._raw_body = self._io.read_bytes(self.size)
-            io = KaitaiStream(BytesIO(self._raw_body))
-            self.body = self._root.ListWithHeader(io, self, self._root)
-            self.body._read()
+            _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+            self.body = RenderwareBinaryStream.ListWithHeader(_io__raw_body, self, self._root)
         else:
             self.body = self._io.read_bytes(self.size)
-        self._debug['body']['end'] = self._io.pos()
 
     class StructClump(KaitaiStruct):
         """
         .. seealso::
            Source - https://www.gtamodding.com/wiki/RpClump
         """
-        SEQ_FIELDS = ["num_atomics", "num_lights", "num_cameras"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['num_atomics']['start'] = self._io.pos()
             self.num_atomics = self._io.read_u4le()
-            self._debug['num_atomics']['end'] = self._io.pos()
             if self._parent.version >= 208896:
-                self._debug['num_lights']['start'] = self._io.pos()
                 self.num_lights = self._io.read_u4le()
-                self._debug['num_lights']['end'] = self._io.pos()
 
             if self._parent.version >= 208896:
-                self._debug['num_cameras']['start'] = self._io.pos()
                 self.num_cameras = self._io.read_u4le()
-                self._debug['num_cameras']['end'] = self._io.pos()
 
 
 
@@ -269,50 +247,27 @@ class RenderwareBinaryStream(KaitaiStruct):
         .. seealso::
            Source - https://www.gtamodding.com/wiki/RpGeometry
         """
-        SEQ_FIELDS = ["format", "num_triangles", "num_vertices", "num_morph_targets", "surf_prop", "geometry", "morph_targets"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['format']['start'] = self._io.pos()
             self.format = self._io.read_u4le()
-            self._debug['format']['end'] = self._io.pos()
-            self._debug['num_triangles']['start'] = self._io.pos()
             self.num_triangles = self._io.read_u4le()
-            self._debug['num_triangles']['end'] = self._io.pos()
-            self._debug['num_vertices']['start'] = self._io.pos()
             self.num_vertices = self._io.read_u4le()
-            self._debug['num_vertices']['end'] = self._io.pos()
-            self._debug['num_morph_targets']['start'] = self._io.pos()
             self.num_morph_targets = self._io.read_u4le()
-            self._debug['num_morph_targets']['end'] = self._io.pos()
             if self._parent.version < 212992:
-                self._debug['surf_prop']['start'] = self._io.pos()
-                self.surf_prop = self._root.SurfaceProperties(self._io, self, self._root)
-                self.surf_prop._read()
-                self._debug['surf_prop']['end'] = self._io.pos()
+                self.surf_prop = RenderwareBinaryStream.SurfaceProperties(self._io, self, self._root)
 
             if not (self.is_native):
-                self._debug['geometry']['start'] = self._io.pos()
-                self.geometry = self._root.GeometryNonNative(self._io, self, self._root)
-                self.geometry._read()
-                self._debug['geometry']['end'] = self._io.pos()
+                self.geometry = RenderwareBinaryStream.GeometryNonNative(self._io, self, self._root)
 
-            self._debug['morph_targets']['start'] = self._io.pos()
             self.morph_targets = [None] * (self.num_morph_targets)
             for i in range(self.num_morph_targets):
-                if not 'arr' in self._debug['morph_targets']:
-                    self._debug['morph_targets']['arr'] = []
-                self._debug['morph_targets']['arr'].append({'start': self._io.pos()})
-                _t_morph_targets = self._root.MorphTarget(self._io, self, self._root)
-                _t_morph_targets._read()
-                self.morph_targets[i] = _t_morph_targets
-                self._debug['morph_targets']['arr'][i]['end'] = self._io.pos()
+                self.morph_targets[i] = RenderwareBinaryStream.MorphTarget(self._io, self, self._root)
 
-            self._debug['morph_targets']['end'] = self._io.pos()
 
         @property
         def is_textured(self):
@@ -348,54 +303,29 @@ class RenderwareBinaryStream(KaitaiStruct):
 
 
     class GeometryNonNative(KaitaiStruct):
-        SEQ_FIELDS = ["prelit_colors", "tex_coords", "triangles"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
             if self._parent.is_prelit:
-                self._debug['prelit_colors']['start'] = self._io.pos()
                 self.prelit_colors = [None] * (self._parent.num_vertices)
                 for i in range(self._parent.num_vertices):
-                    if not 'arr' in self._debug['prelit_colors']:
-                        self._debug['prelit_colors']['arr'] = []
-                    self._debug['prelit_colors']['arr'].append({'start': self._io.pos()})
-                    _t_prelit_colors = self._root.Rgba(self._io, self, self._root)
-                    _t_prelit_colors._read()
-                    self.prelit_colors[i] = _t_prelit_colors
-                    self._debug['prelit_colors']['arr'][i]['end'] = self._io.pos()
+                    self.prelit_colors[i] = RenderwareBinaryStream.Rgba(self._io, self, self._root)
 
-                self._debug['prelit_colors']['end'] = self._io.pos()
 
             if  ((self._parent.is_textured) or (self._parent.is_textured2)) :
-                self._debug['tex_coords']['start'] = self._io.pos()
                 self.tex_coords = [None] * (self._parent.num_vertices)
                 for i in range(self._parent.num_vertices):
-                    if not 'arr' in self._debug['tex_coords']:
-                        self._debug['tex_coords']['arr'] = []
-                    self._debug['tex_coords']['arr'].append({'start': self._io.pos()})
-                    _t_tex_coords = self._root.TexCoord(self._io, self, self._root)
-                    _t_tex_coords._read()
-                    self.tex_coords[i] = _t_tex_coords
-                    self._debug['tex_coords']['arr'][i]['end'] = self._io.pos()
+                    self.tex_coords[i] = RenderwareBinaryStream.TexCoord(self._io, self, self._root)
 
-                self._debug['tex_coords']['end'] = self._io.pos()
 
-            self._debug['triangles']['start'] = self._io.pos()
             self.triangles = [None] * (self._parent.num_triangles)
             for i in range(self._parent.num_triangles):
-                if not 'arr' in self._debug['triangles']:
-                    self._debug['triangles']['arr'] = []
-                self._debug['triangles']['arr'].append({'start': self._io.pos()})
-                _t_triangles = self._root.Triangle(self._io, self, self._root)
-                _t_triangles._read()
-                self.triangles[i] = _t_triangles
-                self._debug['triangles']['arr'][i]['end'] = self._io.pos()
+                self.triangles[i] = RenderwareBinaryStream.Triangle(self._io, self, self._root)
 
-            self._debug['triangles']['end'] = self._io.pos()
 
 
     class StructGeometryList(KaitaiStruct):
@@ -403,111 +333,66 @@ class RenderwareBinaryStream(KaitaiStruct):
         .. seealso::
            Source - https://www.gtamodding.com/wiki/Geometry_List_(RW_Section)#Structure
         """
-        SEQ_FIELDS = ["num_geometries"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['num_geometries']['start'] = self._io.pos()
             self.num_geometries = self._io.read_u4le()
-            self._debug['num_geometries']['end'] = self._io.pos()
 
 
     class Rgba(KaitaiStruct):
-        SEQ_FIELDS = ["r", "g", "b", "a"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['r']['start'] = self._io.pos()
             self.r = self._io.read_u1()
-            self._debug['r']['end'] = self._io.pos()
-            self._debug['g']['start'] = self._io.pos()
             self.g = self._io.read_u1()
-            self._debug['g']['end'] = self._io.pos()
-            self._debug['b']['start'] = self._io.pos()
             self.b = self._io.read_u1()
-            self._debug['b']['end'] = self._io.pos()
-            self._debug['a']['start'] = self._io.pos()
             self.a = self._io.read_u1()
-            self._debug['a']['end'] = self._io.pos()
 
 
     class Sphere(KaitaiStruct):
-        SEQ_FIELDS = ["x", "y", "z", "radius"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['x']['start'] = self._io.pos()
             self.x = self._io.read_f4le()
-            self._debug['x']['end'] = self._io.pos()
-            self._debug['y']['start'] = self._io.pos()
             self.y = self._io.read_f4le()
-            self._debug['y']['end'] = self._io.pos()
-            self._debug['z']['start'] = self._io.pos()
             self.z = self._io.read_f4le()
-            self._debug['z']['end'] = self._io.pos()
-            self._debug['radius']['start'] = self._io.pos()
             self.radius = self._io.read_f4le()
-            self._debug['radius']['end'] = self._io.pos()
 
 
     class MorphTarget(KaitaiStruct):
-        SEQ_FIELDS = ["bounding_sphere", "has_vertices", "has_normals", "vertices", "normals"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['bounding_sphere']['start'] = self._io.pos()
-            self.bounding_sphere = self._root.Sphere(self._io, self, self._root)
-            self.bounding_sphere._read()
-            self._debug['bounding_sphere']['end'] = self._io.pos()
-            self._debug['has_vertices']['start'] = self._io.pos()
+            self.bounding_sphere = RenderwareBinaryStream.Sphere(self._io, self, self._root)
             self.has_vertices = self._io.read_u4le()
-            self._debug['has_vertices']['end'] = self._io.pos()
-            self._debug['has_normals']['start'] = self._io.pos()
             self.has_normals = self._io.read_u4le()
-            self._debug['has_normals']['end'] = self._io.pos()
             if self.has_vertices != 0:
-                self._debug['vertices']['start'] = self._io.pos()
                 self.vertices = [None] * (self._parent.num_vertices)
                 for i in range(self._parent.num_vertices):
-                    if not 'arr' in self._debug['vertices']:
-                        self._debug['vertices']['arr'] = []
-                    self._debug['vertices']['arr'].append({'start': self._io.pos()})
-                    _t_vertices = self._root.Vector3d(self._io, self, self._root)
-                    _t_vertices._read()
-                    self.vertices[i] = _t_vertices
-                    self._debug['vertices']['arr'][i]['end'] = self._io.pos()
+                    self.vertices[i] = RenderwareBinaryStream.Vector3d(self._io, self, self._root)
 
-                self._debug['vertices']['end'] = self._io.pos()
 
             if self.has_normals != 0:
-                self._debug['normals']['start'] = self._io.pos()
                 self.normals = [None] * (self._parent.num_vertices)
                 for i in range(self._parent.num_vertices):
-                    if not 'arr' in self._debug['normals']:
-                        self._debug['normals']['arr'] = []
-                    self._debug['normals']['arr'].append({'start': self._io.pos()})
-                    _t_normals = self._root.Vector3d(self._io, self, self._root)
-                    _t_normals._read()
-                    self.normals[i] = _t_normals
-                    self._debug['normals']['arr'][i]['end'] = self._io.pos()
+                    self.normals[i] = RenderwareBinaryStream.Vector3d(self._io, self, self._root)
 
-                self._debug['normals']['end'] = self._io.pos()
 
 
 
@@ -516,23 +401,16 @@ class RenderwareBinaryStream(KaitaiStruct):
         .. seealso::
            Source - https://www.gtamodding.com/wiki/RpGeometry
         """
-        SEQ_FIELDS = ["ambient", "specular", "diffuse"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['ambient']['start'] = self._io.pos()
             self.ambient = self._io.read_f4le()
-            self._debug['ambient']['end'] = self._io.pos()
-            self._debug['specular']['start'] = self._io.pos()
             self.specular = self._io.read_f4le()
-            self._debug['specular']['end'] = self._io.pos()
-            self._debug['diffuse']['start'] = self._io.pos()
             self.diffuse = self._io.read_f4le()
-            self._debug['diffuse']['end'] = self._io.pos()
 
 
     class StructFrameList(KaitaiStruct):
@@ -540,29 +418,18 @@ class RenderwareBinaryStream(KaitaiStruct):
         .. seealso::
            Source - https://www.gtamodding.com/wiki/Frame_List_(RW_Section)#Structure
         """
-        SEQ_FIELDS = ["num_frames", "frames"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['num_frames']['start'] = self._io.pos()
             self.num_frames = self._io.read_u4le()
-            self._debug['num_frames']['end'] = self._io.pos()
-            self._debug['frames']['start'] = self._io.pos()
             self.frames = [None] * (self.num_frames)
             for i in range(self.num_frames):
-                if not 'arr' in self._debug['frames']:
-                    self._debug['frames']['arr'] = []
-                self._debug['frames']['arr'].append({'start': self._io.pos()})
-                _t_frames = self._root.Frame(self._io, self, self._root)
-                _t_frames._read()
-                self.frames[i] = _t_frames
-                self._debug['frames']['arr'][i]['end'] = self._io.pos()
+                self.frames[i] = RenderwareBinaryStream.Frame(self._io, self, self._root)
 
-            self._debug['frames']['end'] = self._io.pos()
 
 
     class Matrix(KaitaiStruct):
@@ -570,26 +437,17 @@ class RenderwareBinaryStream(KaitaiStruct):
         .. seealso::
            Source - https://www.gtamodding.com/wiki/Frame_List_(RW_Section)#Structure
         """
-        SEQ_FIELDS = ["entries"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['entries']['start'] = self._io.pos()
             self.entries = [None] * (3)
             for i in range(3):
-                if not 'arr' in self._debug['entries']:
-                    self._debug['entries']['arr'] = []
-                self._debug['entries']['arr'].append({'start': self._io.pos()})
-                _t_entries = self._root.Vector3d(self._io, self, self._root)
-                _t_entries._read()
-                self.entries[i] = _t_entries
-                self._debug['entries']['arr'][i]['end'] = self._io.pos()
+                self.entries[i] = RenderwareBinaryStream.Vector3d(self._io, self, self._root)
 
-            self._debug['entries']['end'] = self._io.pos()
 
 
     class Vector3d(KaitaiStruct):
@@ -597,23 +455,16 @@ class RenderwareBinaryStream(KaitaiStruct):
         .. seealso::
            Source - https://www.gtamodding.com/wiki/Frame_List_(RW_Section)#Structure
         """
-        SEQ_FIELDS = ["x", "y", "z"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['x']['start'] = self._io.pos()
             self.x = self._io.read_f4le()
-            self._debug['x']['end'] = self._io.pos()
-            self._debug['y']['start'] = self._io.pos()
             self.y = self._io.read_f4le()
-            self._debug['y']['end'] = self._io.pos()
-            self._debug['z']['start'] = self._io.pos()
             self.z = self._io.read_f4le()
-            self._debug['z']['end'] = self._io.pos()
 
 
     class ListWithHeader(KaitaiStruct):
@@ -624,90 +475,69 @@ class RenderwareBinaryStream(KaitaiStruct):
         entries, beside the first one, are normal, self-describing
         records.
         """
-        SEQ_FIELDS = ["code", "header_size", "version", "header", "entries"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['code']['start'] = self._io.pos()
-            self.code = self._io.ensure_fixed_contents(b"\x01\x00\x00\x00")
-            self._debug['code']['end'] = self._io.pos()
-            self._debug['header_size']['start'] = self._io.pos()
+            self.code = self._io.read_bytes(4)
+            if not self.code == b"\x01\x00\x00\x00":
+                raise kaitaistruct.ValidationNotEqualError(b"\x01\x00\x00\x00", self.code, self._io, u"/types/list_with_header/seq/0")
             self.header_size = self._io.read_u4le()
-            self._debug['header_size']['end'] = self._io.pos()
-            self._debug['version']['start'] = self._io.pos()
-            self.version = self._io.read_u4le()
-            self._debug['version']['end'] = self._io.pos()
-            self._debug['header']['start'] = self._io.pos()
+            self.library_id_stamp = self._io.read_u4le()
             _on = self._parent.code
-            if _on == self._root.Sections.geometry:
+            if _on == RenderwareBinaryStream.Sections.geometry:
                 self._raw_header = self._io.read_bytes(self.header_size)
-                io = KaitaiStream(BytesIO(self._raw_header))
-                self.header = self._root.StructGeometry(io, self, self._root)
-                self.header._read()
-            elif _on == self._root.Sections.texture_dictionary:
+                _io__raw_header = KaitaiStream(BytesIO(self._raw_header))
+                self.header = RenderwareBinaryStream.StructGeometry(_io__raw_header, self, self._root)
+            elif _on == RenderwareBinaryStream.Sections.texture_dictionary:
                 self._raw_header = self._io.read_bytes(self.header_size)
-                io = KaitaiStream(BytesIO(self._raw_header))
-                self.header = self._root.StructTextureDictionary(io, self, self._root)
-                self.header._read()
-            elif _on == self._root.Sections.geometry_list:
+                _io__raw_header = KaitaiStream(BytesIO(self._raw_header))
+                self.header = RenderwareBinaryStream.StructTextureDictionary(_io__raw_header, self, self._root)
+            elif _on == RenderwareBinaryStream.Sections.geometry_list:
                 self._raw_header = self._io.read_bytes(self.header_size)
-                io = KaitaiStream(BytesIO(self._raw_header))
-                self.header = self._root.StructGeometryList(io, self, self._root)
-                self.header._read()
-            elif _on == self._root.Sections.clump:
+                _io__raw_header = KaitaiStream(BytesIO(self._raw_header))
+                self.header = RenderwareBinaryStream.StructGeometryList(_io__raw_header, self, self._root)
+            elif _on == RenderwareBinaryStream.Sections.clump:
                 self._raw_header = self._io.read_bytes(self.header_size)
-                io = KaitaiStream(BytesIO(self._raw_header))
-                self.header = self._root.StructClump(io, self, self._root)
-                self.header._read()
-            elif _on == self._root.Sections.frame_list:
+                _io__raw_header = KaitaiStream(BytesIO(self._raw_header))
+                self.header = RenderwareBinaryStream.StructClump(_io__raw_header, self, self._root)
+            elif _on == RenderwareBinaryStream.Sections.frame_list:
                 self._raw_header = self._io.read_bytes(self.header_size)
-                io = KaitaiStream(BytesIO(self._raw_header))
-                self.header = self._root.StructFrameList(io, self, self._root)
-                self.header._read()
+                _io__raw_header = KaitaiStream(BytesIO(self._raw_header))
+                self.header = RenderwareBinaryStream.StructFrameList(_io__raw_header, self, self._root)
             else:
                 self.header = self._io.read_bytes(self.header_size)
-            self._debug['header']['end'] = self._io.pos()
-            self._debug['entries']['start'] = self._io.pos()
             self.entries = []
             i = 0
             while not self._io.is_eof():
-                if not 'arr' in self._debug['entries']:
-                    self._debug['entries']['arr'] = []
-                self._debug['entries']['arr'].append({'start': self._io.pos()})
-                _t_entries = RenderwareBinaryStream(self._io)
-                _t_entries._read()
-                self.entries.append(_t_entries)
-                self._debug['entries']['arr'][len(self.entries) - 1]['end'] = self._io.pos()
+                self.entries.append(RenderwareBinaryStream(self._io))
                 i += 1
 
-            self._debug['entries']['end'] = self._io.pos()
+
+        @property
+        def version(self):
+            if hasattr(self, '_m_version'):
+                return self._m_version if hasattr(self, '_m_version') else None
+
+            self._m_version = (((((self.library_id_stamp >> 14) & 261888) + 196608) | ((self.library_id_stamp >> 16) & 63)) if (self.library_id_stamp & 4294901760) != 0 else (self.library_id_stamp << 8))
+            return self._m_version if hasattr(self, '_m_version') else None
 
 
     class Triangle(KaitaiStruct):
-        SEQ_FIELDS = ["vertex2", "vertex1", "material_id", "vertex3"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['vertex2']['start'] = self._io.pos()
             self.vertex2 = self._io.read_u2le()
-            self._debug['vertex2']['end'] = self._io.pos()
-            self._debug['vertex1']['start'] = self._io.pos()
             self.vertex1 = self._io.read_u2le()
-            self._debug['vertex1']['end'] = self._io.pos()
-            self._debug['material_id']['start'] = self._io.pos()
             self.material_id = self._io.read_u2le()
-            self._debug['material_id']['end'] = self._io.pos()
-            self._debug['vertex3']['start'] = self._io.pos()
             self.vertex3 = self._io.read_u2le()
-            self._debug['vertex3']['end'] = self._io.pos()
 
 
     class Frame(KaitaiStruct):
@@ -715,59 +545,48 @@ class RenderwareBinaryStream(KaitaiStruct):
         .. seealso::
            Source - https://www.gtamodding.com/wiki/Frame_List_(RW_Section)#Structure
         """
-        SEQ_FIELDS = ["rotation_matrix", "position", "cur_frame_idx", "matrix_creation_flags"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['rotation_matrix']['start'] = self._io.pos()
-            self.rotation_matrix = self._root.Matrix(self._io, self, self._root)
-            self.rotation_matrix._read()
-            self._debug['rotation_matrix']['end'] = self._io.pos()
-            self._debug['position']['start'] = self._io.pos()
-            self.position = self._root.Vector3d(self._io, self, self._root)
-            self.position._read()
-            self._debug['position']['end'] = self._io.pos()
-            self._debug['cur_frame_idx']['start'] = self._io.pos()
+            self.rotation_matrix = RenderwareBinaryStream.Matrix(self._io, self, self._root)
+            self.position = RenderwareBinaryStream.Vector3d(self._io, self, self._root)
             self.cur_frame_idx = self._io.read_s4le()
-            self._debug['cur_frame_idx']['end'] = self._io.pos()
-            self._debug['matrix_creation_flags']['start'] = self._io.pos()
             self.matrix_creation_flags = self._io.read_u4le()
-            self._debug['matrix_creation_flags']['end'] = self._io.pos()
 
 
     class TexCoord(KaitaiStruct):
-        SEQ_FIELDS = ["u", "v"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['u']['start'] = self._io.pos()
             self.u = self._io.read_f4le()
-            self._debug['u']['end'] = self._io.pos()
-            self._debug['v']['start'] = self._io.pos()
             self.v = self._io.read_f4le()
-            self._debug['v']['end'] = self._io.pos()
 
 
     class StructTextureDictionary(KaitaiStruct):
-        SEQ_FIELDS = ["num_textures"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['num_textures']['start'] = self._io.pos()
             self.num_textures = self._io.read_u4le()
-            self._debug['num_textures']['end'] = self._io.pos()
 
+
+    @property
+    def version(self):
+        if hasattr(self, '_m_version'):
+            return self._m_version if hasattr(self, '_m_version') else None
+
+        self._m_version = (((((self.library_id_stamp >> 14) & 261888) + 196608) | ((self.library_id_stamp >> 16) & 63)) if (self.library_id_stamp & 4294901760) != 0 else (self.library_id_stamp << 8))
+        return self._m_version if hasattr(self, '_m_version') else None
 
 

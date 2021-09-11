@@ -1,13 +1,13 @@
 # This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
 from pkg_resources import parse_version
-from .kaitaistruct import __version__ as ks_version, KaitaiStruct, KaitaiStream, BytesIO
+from . import kaitaistruct
+from .kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
 from enum import Enum
-import collections
 
 
-if parse_version(ks_version) < parse_version('0.7'):
-    raise Exception("Incompatible Kaitai Struct Python API: 0.7 or later is required, but you have %s" % (ks_version))
+if parse_version(kaitaistruct.__version__) < parse_version('0.9'):
+    raise Exception("Incompatible Kaitai Struct Python API: 0.9 or later is required, but you have %s" % (kaitaistruct.__version__))
 
 class BlenderBlend(KaitaiStruct):
     """Blender is an open source suite for 3D modelling, sculpting,
@@ -31,63 +31,38 @@ class BlenderBlend(KaitaiStruct):
     class Endian(Enum):
         be = 86
         le = 118
-    SEQ_FIELDS = ["hdr", "blocks"]
     def __init__(self, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
         self._root = _root if _root else self
-        self._debug = collections.defaultdict(dict)
+        self._read()
 
     def _read(self):
-        self._debug['hdr']['start'] = self._io.pos()
-        self.hdr = self._root.Header(self._io, self, self._root)
-        self.hdr._read()
-        self._debug['hdr']['end'] = self._io.pos()
-        self._debug['blocks']['start'] = self._io.pos()
+        self.hdr = BlenderBlend.Header(self._io, self, self._root)
         self.blocks = []
         i = 0
         while not self._io.is_eof():
-            if not 'arr' in self._debug['blocks']:
-                self._debug['blocks']['arr'] = []
-            self._debug['blocks']['arr'].append({'start': self._io.pos()})
-            _t_blocks = self._root.FileBlock(self._io, self, self._root)
-            _t_blocks._read()
-            self.blocks.append(_t_blocks)
-            self._debug['blocks']['arr'][len(self.blocks) - 1]['end'] = self._io.pos()
+            self.blocks.append(BlenderBlend.FileBlock(self._io, self, self._root))
             i += 1
 
-        self._debug['blocks']['end'] = self._io.pos()
 
     class DnaStruct(KaitaiStruct):
         """DNA struct contains a `type` (type name), which is specified as
         an index in types table, and sequence of fields.
         """
-        SEQ_FIELDS = ["idx_type", "num_fields", "fields"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['idx_type']['start'] = self._io.pos()
             self.idx_type = self._io.read_u2le()
-            self._debug['idx_type']['end'] = self._io.pos()
-            self._debug['num_fields']['start'] = self._io.pos()
             self.num_fields = self._io.read_u2le()
-            self._debug['num_fields']['end'] = self._io.pos()
-            self._debug['fields']['start'] = self._io.pos()
             self.fields = [None] * (self.num_fields)
             for i in range(self.num_fields):
-                if not 'arr' in self._debug['fields']:
-                    self._debug['fields']['arr'] = []
-                self._debug['fields']['arr'].append({'start': self._io.pos()})
-                _t_fields = self._root.DnaField(self._io, self, self._root)
-                _t_fields._read()
-                self.fields[i] = _t_fields
-                self._debug['fields']['arr'][i]['end'] = self._io.pos()
+                self.fields[i] = BlenderBlend.DnaField(self._io, self, self._root)
 
-            self._debug['fields']['end'] = self._io.pos()
 
         @property
         def type(self):
@@ -99,39 +74,25 @@ class BlenderBlend(KaitaiStruct):
 
 
     class FileBlock(KaitaiStruct):
-        SEQ_FIELDS = ["code", "len_body", "mem_addr", "sdna_index", "count", "body"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['code']['start'] = self._io.pos()
             self.code = (self._io.read_bytes(4)).decode(u"ASCII")
-            self._debug['code']['end'] = self._io.pos()
-            self._debug['len_body']['start'] = self._io.pos()
             self.len_body = self._io.read_u4le()
-            self._debug['len_body']['end'] = self._io.pos()
-            self._debug['mem_addr']['start'] = self._io.pos()
             self.mem_addr = self._io.read_bytes(self._root.hdr.psize)
-            self._debug['mem_addr']['end'] = self._io.pos()
-            self._debug['sdna_index']['start'] = self._io.pos()
             self.sdna_index = self._io.read_u4le()
-            self._debug['sdna_index']['end'] = self._io.pos()
-            self._debug['count']['start'] = self._io.pos()
             self.count = self._io.read_u4le()
-            self._debug['count']['end'] = self._io.pos()
-            self._debug['body']['start'] = self._io.pos()
             _on = self.code
             if _on == u"DNA1":
                 self._raw_body = self._io.read_bytes(self.len_body)
-                io = KaitaiStream(BytesIO(self._raw_body))
-                self.body = self._root.Dna1Body(io, self, self._root)
-                self.body._read()
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = BlenderBlend.Dna1Body(_io__raw_body, self, self._root)
             else:
                 self.body = self._io.read_bytes(self.len_body)
-            self._debug['body']['end'] = self._io.pos()
 
         @property
         def sdna_struct(self):
@@ -160,112 +121,66 @@ class BlenderBlend(KaitaiStruct):
         .. seealso::
            Source - https://en.blender.org/index.php/Dev:Source/Architecture/File_Format#Structure_DNA
         """
-        SEQ_FIELDS = ["id", "name_magic", "num_names", "names", "padding_1", "type_magic", "num_types", "types", "padding_2", "tlen_magic", "lengths", "padding_3", "strc_magic", "num_structs", "structs"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['id']['start'] = self._io.pos()
-            self.id = self._io.ensure_fixed_contents(b"\x53\x44\x4E\x41")
-            self._debug['id']['end'] = self._io.pos()
-            self._debug['name_magic']['start'] = self._io.pos()
-            self.name_magic = self._io.ensure_fixed_contents(b"\x4E\x41\x4D\x45")
-            self._debug['name_magic']['end'] = self._io.pos()
-            self._debug['num_names']['start'] = self._io.pos()
+            self.id = self._io.read_bytes(4)
+            if not self.id == b"\x53\x44\x4E\x41":
+                raise kaitaistruct.ValidationNotEqualError(b"\x53\x44\x4E\x41", self.id, self._io, u"/types/dna1_body/seq/0")
+            self.name_magic = self._io.read_bytes(4)
+            if not self.name_magic == b"\x4E\x41\x4D\x45":
+                raise kaitaistruct.ValidationNotEqualError(b"\x4E\x41\x4D\x45", self.name_magic, self._io, u"/types/dna1_body/seq/1")
             self.num_names = self._io.read_u4le()
-            self._debug['num_names']['end'] = self._io.pos()
-            self._debug['names']['start'] = self._io.pos()
             self.names = [None] * (self.num_names)
             for i in range(self.num_names):
-                if not 'arr' in self._debug['names']:
-                    self._debug['names']['arr'] = []
-                self._debug['names']['arr'].append({'start': self._io.pos()})
                 self.names[i] = (self._io.read_bytes_term(0, False, True, True)).decode(u"UTF-8")
-                self._debug['names']['arr'][i]['end'] = self._io.pos()
 
-            self._debug['names']['end'] = self._io.pos()
-            self._debug['padding_1']['start'] = self._io.pos()
             self.padding_1 = self._io.read_bytes(((4 - self._io.pos()) % 4))
-            self._debug['padding_1']['end'] = self._io.pos()
-            self._debug['type_magic']['start'] = self._io.pos()
-            self.type_magic = self._io.ensure_fixed_contents(b"\x54\x59\x50\x45")
-            self._debug['type_magic']['end'] = self._io.pos()
-            self._debug['num_types']['start'] = self._io.pos()
+            self.type_magic = self._io.read_bytes(4)
+            if not self.type_magic == b"\x54\x59\x50\x45":
+                raise kaitaistruct.ValidationNotEqualError(b"\x54\x59\x50\x45", self.type_magic, self._io, u"/types/dna1_body/seq/5")
             self.num_types = self._io.read_u4le()
-            self._debug['num_types']['end'] = self._io.pos()
-            self._debug['types']['start'] = self._io.pos()
             self.types = [None] * (self.num_types)
             for i in range(self.num_types):
-                if not 'arr' in self._debug['types']:
-                    self._debug['types']['arr'] = []
-                self._debug['types']['arr'].append({'start': self._io.pos()})
                 self.types[i] = (self._io.read_bytes_term(0, False, True, True)).decode(u"UTF-8")
-                self._debug['types']['arr'][i]['end'] = self._io.pos()
 
-            self._debug['types']['end'] = self._io.pos()
-            self._debug['padding_2']['start'] = self._io.pos()
             self.padding_2 = self._io.read_bytes(((4 - self._io.pos()) % 4))
-            self._debug['padding_2']['end'] = self._io.pos()
-            self._debug['tlen_magic']['start'] = self._io.pos()
-            self.tlen_magic = self._io.ensure_fixed_contents(b"\x54\x4C\x45\x4E")
-            self._debug['tlen_magic']['end'] = self._io.pos()
-            self._debug['lengths']['start'] = self._io.pos()
+            self.tlen_magic = self._io.read_bytes(4)
+            if not self.tlen_magic == b"\x54\x4C\x45\x4E":
+                raise kaitaistruct.ValidationNotEqualError(b"\x54\x4C\x45\x4E", self.tlen_magic, self._io, u"/types/dna1_body/seq/9")
             self.lengths = [None] * (self.num_types)
             for i in range(self.num_types):
-                if not 'arr' in self._debug['lengths']:
-                    self._debug['lengths']['arr'] = []
-                self._debug['lengths']['arr'].append({'start': self._io.pos()})
                 self.lengths[i] = self._io.read_u2le()
-                self._debug['lengths']['arr'][i]['end'] = self._io.pos()
 
-            self._debug['lengths']['end'] = self._io.pos()
-            self._debug['padding_3']['start'] = self._io.pos()
             self.padding_3 = self._io.read_bytes(((4 - self._io.pos()) % 4))
-            self._debug['padding_3']['end'] = self._io.pos()
-            self._debug['strc_magic']['start'] = self._io.pos()
-            self.strc_magic = self._io.ensure_fixed_contents(b"\x53\x54\x52\x43")
-            self._debug['strc_magic']['end'] = self._io.pos()
-            self._debug['num_structs']['start'] = self._io.pos()
+            self.strc_magic = self._io.read_bytes(4)
+            if not self.strc_magic == b"\x53\x54\x52\x43":
+                raise kaitaistruct.ValidationNotEqualError(b"\x53\x54\x52\x43", self.strc_magic, self._io, u"/types/dna1_body/seq/12")
             self.num_structs = self._io.read_u4le()
-            self._debug['num_structs']['end'] = self._io.pos()
-            self._debug['structs']['start'] = self._io.pos()
             self.structs = [None] * (self.num_structs)
             for i in range(self.num_structs):
-                if not 'arr' in self._debug['structs']:
-                    self._debug['structs']['arr'] = []
-                self._debug['structs']['arr'].append({'start': self._io.pos()})
-                _t_structs = self._root.DnaStruct(self._io, self, self._root)
-                _t_structs._read()
-                self.structs[i] = _t_structs
-                self._debug['structs']['arr'][i]['end'] = self._io.pos()
+                self.structs[i] = BlenderBlend.DnaStruct(self._io, self, self._root)
 
-            self._debug['structs']['end'] = self._io.pos()
 
 
     class Header(KaitaiStruct):
-        SEQ_FIELDS = ["magic", "ptr_size_id", "endian", "version"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['magic']['start'] = self._io.pos()
-            self.magic = self._io.ensure_fixed_contents(b"\x42\x4C\x45\x4E\x44\x45\x52")
-            self._debug['magic']['end'] = self._io.pos()
-            self._debug['ptr_size_id']['start'] = self._io.pos()
-            self.ptr_size_id = KaitaiStream.resolve_enum(self._root.PtrSize, self._io.read_u1())
-            self._debug['ptr_size_id']['end'] = self._io.pos()
-            self._debug['endian']['start'] = self._io.pos()
-            self.endian = KaitaiStream.resolve_enum(self._root.Endian, self._io.read_u1())
-            self._debug['endian']['end'] = self._io.pos()
-            self._debug['version']['start'] = self._io.pos()
+            self.magic = self._io.read_bytes(7)
+            if not self.magic == b"\x42\x4C\x45\x4E\x44\x45\x52":
+                raise kaitaistruct.ValidationNotEqualError(b"\x42\x4C\x45\x4E\x44\x45\x52", self.magic, self._io, u"/types/header/seq/0")
+            self.ptr_size_id = KaitaiStream.resolve_enum(BlenderBlend.PtrSize, self._io.read_u1())
+            self.endian = KaitaiStream.resolve_enum(BlenderBlend.Endian, self._io.read_u1())
             self.version = (self._io.read_bytes(3)).decode(u"ASCII")
-            self._debug['version']['end'] = self._io.pos()
 
         @property
         def psize(self):
@@ -273,25 +188,20 @@ class BlenderBlend(KaitaiStruct):
             if hasattr(self, '_m_psize'):
                 return self._m_psize if hasattr(self, '_m_psize') else None
 
-            self._m_psize = (8 if self.ptr_size_id == self._root.PtrSize.bits_64 else 4)
+            self._m_psize = (8 if self.ptr_size_id == BlenderBlend.PtrSize.bits_64 else 4)
             return self._m_psize if hasattr(self, '_m_psize') else None
 
 
     class DnaField(KaitaiStruct):
-        SEQ_FIELDS = ["idx_type", "idx_name"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['idx_type']['start'] = self._io.pos()
             self.idx_type = self._io.read_u2le()
-            self._debug['idx_type']['end'] = self._io.pos()
-            self._debug['idx_name']['start'] = self._io.pos()
             self.idx_name = self._io.read_u2le()
-            self._debug['idx_name']['end'] = self._io.pos()
 
         @property
         def type(self):

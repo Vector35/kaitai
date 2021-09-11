@@ -24,11 +24,7 @@ else:
         from PySide2.QtWidgets import QScrollArea, QWidget, QVBoxLayout, QGroupBox, QTreeWidget, QTreeWidgetItem, QLineEdit, QHeaderView, QSplitter
 
 from . import menu
-
-if sys.version_info[0] == 2:
-	import kshelpers
-else:
-	from . import kshelpers
+from . import kshelpers
 
 class MyQTreeWidget(QTreeWidget):
 	def __init__(self):

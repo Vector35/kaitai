@@ -22,10 +22,7 @@ else:
         from PySide2.QtCore import Qt
         from PySide2.QtWidgets import QTreeWidgetItem
 
-if sys.version_info[0] == 2:
-	import kaitaistruct
-else:
-	from . import kaitaistruct
+from . import kaitaistruct
 
 #------------------------------------------------------------------------------
 # id and parse
@@ -75,6 +72,7 @@ def ksModuleToClass(moduleName):
 	return ''.join(map(lambda x: x.capitalize(), moduleName.split('_')))
 
 def ksImportClass(moduleName):
+	sys.path.append(os.getcwd())
 	global __name__, __package__
 	if not moduleName:
 		return None
@@ -151,7 +149,7 @@ def parseIo(ioObj, ksModuleName=None):
 		parsed = ksClass.from_io(ioObj)
 		parsed._read()
 	except Exception as e:
-		log_error('parseIo(): kaitai module %s threw exception, check file type' % ksModuleName)
+		log_error('parseIo(): kaitai module %s threw exception %s, check file type' % (ksModuleName, str(e)))
 		parsed = None
 
 	return parsed

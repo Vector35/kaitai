@@ -1,12 +1,12 @@
 # This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
 from pkg_resources import parse_version
-from .kaitaistruct import __version__ as ks_version, KaitaiStruct, KaitaiStream, BytesIO
-import collections
+from . import kaitaistruct
+from .kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
 
 
-if parse_version(ks_version) < parse_version('0.7'):
-    raise Exception("Incompatible Kaitai Struct Python API: 0.7 or later is required, but you have %s" % (ks_version))
+if parse_version(kaitaistruct.__version__) < parse_version('0.9'):
+    raise Exception("Incompatible Kaitai Struct Python API: 0.9 or later is required, but you have %s" % (kaitaistruct.__version__))
 
 class VlqBase128Le(KaitaiStruct):
     """A variable-length unsigned integer using base128 encoding. 1-byte groups
@@ -29,45 +29,33 @@ class VlqBase128Le(KaitaiStruct):
     
     This particular implementation supports serialized values to up 8 bytes long.
     """
-    SEQ_FIELDS = ["groups"]
     def __init__(self, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
         self._root = _root if _root else self
-        self._debug = collections.defaultdict(dict)
+        self._read()
 
     def _read(self):
-        self._debug['groups']['start'] = self._io.pos()
         self.groups = []
         i = 0
         while True:
-            if not 'arr' in self._debug['groups']:
-                self._debug['groups']['arr'] = []
-            self._debug['groups']['arr'].append({'start': self._io.pos()})
-            _t_groups = self._root.Group(self._io, self, self._root)
-            _t_groups._read()
-            _ = _t_groups
+            _ = VlqBase128Le.Group(self._io, self, self._root)
             self.groups.append(_)
-            self._debug['groups']['arr'][len(self.groups) - 1]['end'] = self._io.pos()
             if not (_.has_next):
                 break
             i += 1
-        self._debug['groups']['end'] = self._io.pos()
 
     class Group(KaitaiStruct):
         """One byte group, clearly divided into 7-bit "value" chunk and 1-bit "continuation" flag.
         """
-        SEQ_FIELDS = ["b"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['b']['start'] = self._io.pos()
             self.b = self._io.read_u1()
-            self._debug['b']['end'] = self._io.pos()
 
         @property
         def has_next(self):

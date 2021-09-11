@@ -76,7 +76,6 @@ class KaitaiOptionsWidget(QLabel):
 		UIAction.registerAction("game\\allegro_dat")
 		UIAction.registerAction("game\\doom_wad")
 		UIAction.registerAction("game\\dune_2_pak")
-		UIAction.registerAction("game\\fallout2_dat")
 		UIAction.registerAction("game\\fallout_dat")
 		UIAction.registerAction("game\\ftl_dat")
 		UIAction.registerAction("game\\gran_turismo_vol")
@@ -210,7 +209,6 @@ class KaitaiOptionsWidget(QLabel):
 		self.menu.addAction("game\\allegro_dat", "formats")
 		self.menu.addAction("game\\doom_wad", "formats")
 		self.menu.addAction("game\\dune_2_pak", "formats")
-		self.menu.addAction("game\\fallout2_dat", "formats")
 		self.menu.addAction("game\\fallout_dat", "formats")
 		self.menu.addAction("game\\ftl_dat", "formats")
 		self.menu.addAction("game\\gran_turismo_vol", "formats")
@@ -343,7 +341,6 @@ class KaitaiOptionsWidget(QLabel):
 		self.actionHandler.bindAction("game\\allegro_dat", UIAction(self.on_allegro_dat))
 		self.actionHandler.bindAction("game\\doom_wad", UIAction(self.on_doom_wad))
 		self.actionHandler.bindAction("game\\dune_2_pak", UIAction(self.on_dune_2_pak))
-		self.actionHandler.bindAction("game\\fallout2_dat", UIAction(self.on_fallout2_dat))
 		self.actionHandler.bindAction("game\\fallout_dat", UIAction(self.on_fallout_dat))
 		self.actionHandler.bindAction("game\\ftl_dat", UIAction(self.on_ftl_dat))
 		self.actionHandler.bindAction("game\\gran_turismo_vol", UIAction(self.on_gran_turismo_vol))
@@ -566,9 +563,6 @@ class KaitaiOptionsWidget(QLabel):
 
 	def on_dune_2_pak(self, uiActionContext):
 		self.statusBarWidget.kaitaiView.kaitaiParse('dune_2_pak')
-
-	def on_fallout2_dat(self, uiActionContext):
-		self.statusBarWidget.kaitaiView.kaitaiParse('fallout2_dat')
 
 	def on_fallout_dat(self, uiActionContext):
 		self.statusBarWidget.kaitaiView.kaitaiParse('fallout_dat')

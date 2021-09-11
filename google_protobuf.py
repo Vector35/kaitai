@@ -1,15 +1,15 @@
 # This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
 from pkg_resources import parse_version
-from .kaitaistruct import __version__ as ks_version, KaitaiStruct, KaitaiStream, BytesIO
-import collections
+from . import kaitaistruct
+from .kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
 from enum import Enum
 
 
-if parse_version(ks_version) < parse_version('0.7'):
-    raise Exception("Incompatible Kaitai Struct Python API: 0.7 or later is required, but you have %s" % (ks_version))
+if parse_version(kaitaistruct.__version__) < parse_version('0.9'):
+    raise Exception("Incompatible Kaitai Struct Python API: 0.9 or later is required, but you have %s" % (kaitaistruct.__version__))
 
-from .vlq_base128_le import VlqBase128Le
+from . import vlq_base128_le
 class GoogleProtobuf(KaitaiStruct):
     """Google Protocol Buffers (AKA protobuf) is a popular data
     serialization scheme used for communication protocols, data storage,
@@ -42,28 +42,19 @@ class GoogleProtobuf(KaitaiStruct):
     .. seealso::
        Source - https://developers.google.com/protocol-buffers/docs/encoding
     """
-    SEQ_FIELDS = ["pairs"]
     def __init__(self, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
         self._root = _root if _root else self
-        self._debug = collections.defaultdict(dict)
+        self._read()
 
     def _read(self):
-        self._debug['pairs']['start'] = self._io.pos()
         self.pairs = []
         i = 0
         while not self._io.is_eof():
-            if not 'arr' in self._debug['pairs']:
-                self._debug['pairs']['arr'] = []
-            self._debug['pairs']['arr'].append({'start': self._io.pos()})
-            _t_pairs = self._root.Pair(self._io, self, self._root)
-            _t_pairs._read()
-            self.pairs.append(_t_pairs)
-            self._debug['pairs']['arr'][len(self.pairs) - 1]['end'] = self._io.pos()
+            self.pairs.append(GoogleProtobuf.Pair(self._io, self, self._root))
             i += 1
 
-        self._debug['pairs']['end'] = self._io.pos()
 
     class Pair(KaitaiStruct):
         """Key-value pair."""
@@ -75,31 +66,23 @@ class GoogleProtobuf(KaitaiStruct):
             group_start = 3
             group_end = 4
             bit_32 = 5
-        SEQ_FIELDS = ["key", "value"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['key']['start'] = self._io.pos()
-            self.key = VlqBase128Le(self._io)
-            self.key._read()
-            self._debug['key']['end'] = self._io.pos()
-            self._debug['value']['start'] = self._io.pos()
+            self.key = vlq_base128_le.VlqBase128Le(self._io)
             _on = self.wire_type
-            if _on == self._root.Pair.WireTypes.varint:
-                self.value = VlqBase128Le(self._io)
-                self.value._read()
-            elif _on == self._root.Pair.WireTypes.len_delimited:
-                self.value = self._root.DelimitedBytes(self._io, self, self._root)
-                self.value._read()
-            elif _on == self._root.Pair.WireTypes.bit_64:
+            if _on == GoogleProtobuf.Pair.WireTypes.varint:
+                self.value = vlq_base128_le.VlqBase128Le(self._io)
+            elif _on == GoogleProtobuf.Pair.WireTypes.len_delimited:
+                self.value = GoogleProtobuf.DelimitedBytes(self._io, self, self._root)
+            elif _on == GoogleProtobuf.Pair.WireTypes.bit_64:
                 self.value = self._io.read_u8le()
-            elif _on == self._root.Pair.WireTypes.bit_32:
+            elif _on == GoogleProtobuf.Pair.WireTypes.bit_32:
                 self.value = self._io.read_u4le()
-            self._debug['value']['end'] = self._io.pos()
 
         @property
         def wire_type(self):
@@ -114,7 +97,7 @@ class GoogleProtobuf(KaitaiStruct):
             if hasattr(self, '_m_wire_type'):
                 return self._m_wire_type if hasattr(self, '_m_wire_type') else None
 
-            self._m_wire_type = KaitaiStream.resolve_enum(self._root.Pair.WireTypes, (self.key.value & 7))
+            self._m_wire_type = KaitaiStream.resolve_enum(GoogleProtobuf.Pair.WireTypes, (self.key.value & 7))
             return self._m_wire_type if hasattr(self, '_m_wire_type') else None
 
         @property
@@ -130,21 +113,15 @@ class GoogleProtobuf(KaitaiStruct):
 
 
     class DelimitedBytes(KaitaiStruct):
-        SEQ_FIELDS = ["len", "body"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['len']['start'] = self._io.pos()
-            self.len = VlqBase128Le(self._io)
-            self.len._read()
-            self._debug['len']['end'] = self._io.pos()
-            self._debug['body']['start'] = self._io.pos()
+            self.len = vlq_base128_le.VlqBase128Le(self._io)
             self.body = self._io.read_bytes(self.len.value)
-            self._debug['body']['end'] = self._io.pos()
 
 
 

@@ -9,12 +9,8 @@ import sys
 import types
 import importlib
 
-if sys.version_info[0] == 2:
-	import kaitaistruct
-	import kshelpers
-else:
-	from . import kaitaistruct
-	from . import kshelpers
+from . import kaitaistruct
+from . import kshelpers
 
 NORMAL = '\033[0m'
 BLACK = '\033[0;30m'
@@ -120,7 +116,7 @@ if __name__ == '__main__':
 		'bitcoin_transaction', 'blender_blend', 'bmp', 'bson', 'code_6502', 'cpio_old_le',
 		'cramfs', 'creative_voice_file', 'dbf', 'dex', 'dicom', 'dns_packet', 'doom_wad',
 		'dos_mz', 'dune_2_pak', 'edid', 'elf', 'exif', 'exif_be', 'exif_le',
-		'ext2', 'fallout2_dat', 'fallout_dat', 'fasttracker_xm_module', 'ftl_dat',
+		'ext2', 'fallout_dat', 'fasttracker_xm_module', 'ftl_dat',
 		'genmidi_op2', 'gettext_mo', 'gif', 'glibc_utmp', 'google_protobuf',
 		'gpt_partition_table', 'gran_turismo_vol', 'gzip', 'hccap', 'hccapx', 'heaps_pak',
 		'heroes_of_might_and_magic_agg', 'heroes_of_might_and_magic_bmp', 'icc_4',
@@ -141,17 +137,16 @@ if __name__ == '__main__':
 		'windows_shell_items', 'windows_systemtime', 'wmf', 'xwd', 'zip',
 		]
 
-		if sys.version_info[0] == 3:
-			module_names += ['ipv4_packet', 'ipv6_packet', 'protocol_body',
-				'microsoft_network_monitor_v2', 'packet_ppi', 'pcap',
-				'ethernet_frame']
+		module_names += ['ipv4_packet', 'ipv6_packet', 'protocol_body',
+			'microsoft_network_monitor_v2', 'packet_ppi', 'pcap',
+			'ethernet_frame']
 
 		(npass, nfail) = (0,0)
 
 		for module_name in sorted(module_names):
 			class_name = ''.join(map(lambda x: x.capitalize(), module_name.split('_')))
 
-			print('from %s import %s...' % (module_name, class_name), end='')
+			print('from .%s import %s...' % (module_name, class_name), end='')
 			try:
 				module = importlib.import_module('.'+module_name, 'kaitai')
 				method = getattr(module, class_name)

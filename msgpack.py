@@ -1,12 +1,12 @@
 # This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
 from pkg_resources import parse_version
-from .kaitaistruct import __version__ as ks_version, KaitaiStruct, KaitaiStream, BytesIO
-import collections
+from . import kaitaistruct
+from .kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
 
 
-if parse_version(ks_version) < parse_version('0.7'):
-    raise Exception("Incompatible Kaitai Struct Python API: 0.7 or later is required, but you have %s" % (ks_version))
+if parse_version(kaitaistruct.__version__) < parse_version('0.9'):
+    raise Exception("Incompatible Kaitai Struct Python API: 0.9 or later is required, but you have %s" % (kaitaistruct.__version__))
 
 class Msgpack(KaitaiStruct):
     """MessagePack (msgpack) is a system to serialize arbitrary structured
@@ -15,18 +15,14 @@ class Msgpack(KaitaiStruct):
     .. seealso::
        Source - https://github.com/msgpack/msgpack/blob/master/spec.md
     """
-    SEQ_FIELDS = ["b1", "int_extra", "float_32_value", "float_64_value", "str_len_8", "str_len_16", "str_len_32", "str_value", "num_array_elements_16", "num_array_elements_32", "array_elements", "num_map_elements_16", "num_map_elements_32", "map_elements"]
     def __init__(self, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
         self._root = _root if _root else self
-        self._debug = collections.defaultdict(dict)
+        self._read()
 
     def _read(self):
-        self._debug['b1']['start'] = self._io.pos()
         self.b1 = self._io.read_u1()
-        self._debug['b1']['end'] = self._io.pos()
-        self._debug['int_extra']['start'] = self._io.pos()
         _on = self.b1
         if _on == 211:
             self.int_extra = self._io.read_s8be()
@@ -44,103 +40,59 @@ class Msgpack(KaitaiStruct):
             self.int_extra = self._io.read_u1()
         elif _on == 206:
             self.int_extra = self._io.read_u4be()
-        self._debug['int_extra']['end'] = self._io.pos()
         if self.is_float_32:
-            self._debug['float_32_value']['start'] = self._io.pos()
             self.float_32_value = self._io.read_f4be()
-            self._debug['float_32_value']['end'] = self._io.pos()
 
         if self.is_float_64:
-            self._debug['float_64_value']['start'] = self._io.pos()
             self.float_64_value = self._io.read_f8be()
-            self._debug['float_64_value']['end'] = self._io.pos()
 
         if self.is_str_8:
-            self._debug['str_len_8']['start'] = self._io.pos()
             self.str_len_8 = self._io.read_u1()
-            self._debug['str_len_8']['end'] = self._io.pos()
 
         if self.is_str_16:
-            self._debug['str_len_16']['start'] = self._io.pos()
             self.str_len_16 = self._io.read_u2be()
-            self._debug['str_len_16']['end'] = self._io.pos()
 
         if self.is_str_32:
-            self._debug['str_len_32']['start'] = self._io.pos()
             self.str_len_32 = self._io.read_u4be()
-            self._debug['str_len_32']['end'] = self._io.pos()
 
         if self.is_str:
-            self._debug['str_value']['start'] = self._io.pos()
             self.str_value = (self._io.read_bytes(self.str_len)).decode(u"UTF-8")
-            self._debug['str_value']['end'] = self._io.pos()
 
         if self.is_array_16:
-            self._debug['num_array_elements_16']['start'] = self._io.pos()
             self.num_array_elements_16 = self._io.read_u2be()
-            self._debug['num_array_elements_16']['end'] = self._io.pos()
 
         if self.is_array_32:
-            self._debug['num_array_elements_32']['start'] = self._io.pos()
             self.num_array_elements_32 = self._io.read_u4be()
-            self._debug['num_array_elements_32']['end'] = self._io.pos()
 
         if self.is_array:
-            self._debug['array_elements']['start'] = self._io.pos()
             self.array_elements = [None] * (self.num_array_elements)
             for i in range(self.num_array_elements):
-                if not 'arr' in self._debug['array_elements']:
-                    self._debug['array_elements']['arr'] = []
-                self._debug['array_elements']['arr'].append({'start': self._io.pos()})
-                _t_array_elements = Msgpack(self._io)
-                _t_array_elements._read()
-                self.array_elements[i] = _t_array_elements
-                self._debug['array_elements']['arr'][i]['end'] = self._io.pos()
+                self.array_elements[i] = Msgpack(self._io)
 
-            self._debug['array_elements']['end'] = self._io.pos()
 
         if self.is_map_16:
-            self._debug['num_map_elements_16']['start'] = self._io.pos()
             self.num_map_elements_16 = self._io.read_u2be()
-            self._debug['num_map_elements_16']['end'] = self._io.pos()
 
         if self.is_map_32:
-            self._debug['num_map_elements_32']['start'] = self._io.pos()
             self.num_map_elements_32 = self._io.read_u4be()
-            self._debug['num_map_elements_32']['end'] = self._io.pos()
 
         if self.is_map:
-            self._debug['map_elements']['start'] = self._io.pos()
             self.map_elements = [None] * (self.num_map_elements)
             for i in range(self.num_map_elements):
-                if not 'arr' in self._debug['map_elements']:
-                    self._debug['map_elements']['arr'] = []
-                self._debug['map_elements']['arr'].append({'start': self._io.pos()})
-                _t_map_elements = self._root.MapTuple(self._io, self, self._root)
-                _t_map_elements._read()
-                self.map_elements[i] = _t_map_elements
-                self._debug['map_elements']['arr'][i]['end'] = self._io.pos()
+                self.map_elements[i] = Msgpack.MapTuple(self._io, self, self._root)
 
-            self._debug['map_elements']['end'] = self._io.pos()
 
 
     class MapTuple(KaitaiStruct):
-        SEQ_FIELDS = ["key", "value"]
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
-            self._debug = collections.defaultdict(dict)
+            self._read()
 
         def _read(self):
-            self._debug['key']['start'] = self._io.pos()
             self.key = Msgpack(self._io)
-            self.key._read()
-            self._debug['key']['end'] = self._io.pos()
-            self._debug['value']['start'] = self._io.pos()
             self.value = Msgpack(self._io)
-            self.value._read()
-            self._debug['value']['end'] = self._io.pos()
 
 
     @property

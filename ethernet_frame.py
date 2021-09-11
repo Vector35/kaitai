@@ -1,13 +1,13 @@
 # This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
 from pkg_resources import parse_version
-from .kaitaistruct import __version__ as ks_version, KaitaiStruct, KaitaiStream, BytesIO
+from . import kaitaistruct
+from .kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
 from enum import Enum
-import collections
 
 
-if parse_version(ks_version) < parse_version('0.7'):
-    raise Exception("Incompatible Kaitai Struct Python API: 0.7 or later is required, but you have %s" % (ks_version))
+if parse_version(kaitaistruct.__version__) < parse_version('0.9'):
+    raise Exception("Incompatible Kaitai Struct Python API: 0.9 or later is required, but you have %s" % (kaitaistruct.__version__))
 
 from . import ipv4_packet
 from . import ipv6_packet
@@ -28,38 +28,63 @@ class EthernetFrame(KaitaiStruct):
         chaosnet = 2052
         x_25_level_3 = 2053
         arp = 2054
+        ieee_802_1q_tpid = 33024
         ipv6 = 34525
-    SEQ_FIELDS = ["dst_mac", "src_mac", "ether_type", "body"]
     def __init__(self, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
         self._root = _root if _root else self
-        self._debug = collections.defaultdict(dict)
+        self._read()
 
     def _read(self):
-        self._debug['dst_mac']['start'] = self._io.pos()
         self.dst_mac = self._io.read_bytes(6)
-        self._debug['dst_mac']['end'] = self._io.pos()
-        self._debug['src_mac']['start'] = self._io.pos()
         self.src_mac = self._io.read_bytes(6)
-        self._debug['src_mac']['end'] = self._io.pos()
-        self._debug['ether_type']['start'] = self._io.pos()
-        self.ether_type = KaitaiStream.resolve_enum(self._root.EtherTypeEnum, self._io.read_u2be())
-        self._debug['ether_type']['end'] = self._io.pos()
-        self._debug['body']['start'] = self._io.pos()
+        self.ether_type_1 = KaitaiStream.resolve_enum(EthernetFrame.EtherTypeEnum, self._io.read_u2be())
+        if self.ether_type_1 == EthernetFrame.EtherTypeEnum.ieee_802_1q_tpid:
+            self.tci = EthernetFrame.TagControlInfo(self._io, self, self._root)
+
+        if self.ether_type_1 == EthernetFrame.EtherTypeEnum.ieee_802_1q_tpid:
+            self.ether_type_2 = KaitaiStream.resolve_enum(EthernetFrame.EtherTypeEnum, self._io.read_u2be())
+
         _on = self.ether_type
-        if _on == self._root.EtherTypeEnum.ipv4:
+        if _on == EthernetFrame.EtherTypeEnum.ipv4:
             self._raw_body = self._io.read_bytes_full()
-            io = KaitaiStream(BytesIO(self._raw_body))
-            self.body = ipv4_packet.Ipv4Packet(io)
-            self.body._read()
-        elif _on == self._root.EtherTypeEnum.ipv6:
+            _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+            self.body = ipv4_packet.Ipv4Packet(_io__raw_body)
+        elif _on == EthernetFrame.EtherTypeEnum.ipv6:
             self._raw_body = self._io.read_bytes_full()
-            io = KaitaiStream(BytesIO(self._raw_body))
-            self.body = ipv6_packet.Ipv6Packet(io)
-            self.body._read()
+            _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+            self.body = ipv6_packet.Ipv6Packet(_io__raw_body)
         else:
             self.body = self._io.read_bytes_full()
-        self._debug['body']['end'] = self._io.pos()
+
+    class TagControlInfo(KaitaiStruct):
+        """Tag Control Information (TCI) is an extension of IEEE 802.1Q to
+        support VLANs on normal IEEE 802.3 Ethernet network.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.priority = self._io.read_bits_int_be(3)
+            self.drop_eligible = self._io.read_bits_int_be(1) != 0
+            self.vlan_id = self._io.read_bits_int_be(12)
+
+
+    @property
+    def ether_type(self):
+        """Ether type can be specied in several places in the frame. If
+        first location bears special marker (0x8100), then it is not the
+        real ether frame yet, an additional payload (`tci`) is expected
+        and real ether type is upcoming next.
+        """
+        if hasattr(self, '_m_ether_type'):
+            return self._m_ether_type if hasattr(self, '_m_ether_type') else None
+
+        self._m_ether_type = (self.ether_type_2 if self.ether_type_1 == EthernetFrame.EtherTypeEnum.ieee_802_1q_tpid else self.ether_type_1)
+        return self._m_ether_type if hasattr(self, '_m_ether_type') else None
 
 
