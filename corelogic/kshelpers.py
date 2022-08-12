@@ -58,22 +58,16 @@ def data_id(sample, length):
         result = 'dex'
 
     #print('data_id() returning \'%s\'' % result)
-    if not result:
-        breakpoint()
     return result
 
 def file_id(fpath):
     with open(fpath, 'rb') as fp:
         return data_id(fp.read(16), os.path.getsize(fpath))
 
-def ksModuleToClass(moduleName):
-    # split on underscores, camelcase
-    return ''.join(map(lambda x: x.capitalize(), moduleName.split('_')))
-
 # see notes in README-developers.md
 repo_in_python_path = False
-def ksImportClass(moduleName):
-    print(f'ksImportClass({moduleName})')
+def ks_import_class(moduleName):
+    print(f'ks_import_class({moduleName})')
 
     global repo_in_python_path
     if not repo_in_python_path:
@@ -84,21 +78,20 @@ def ksImportClass(moduleName):
         repo_in_python_path = True
 
     if not moduleName:
-        print(f'ERROR: ksImportClass given module name: {moduleName}')
+        print(f'ERROR: ks_import_class given module name: {moduleName}')
         return None
 
-    classRef = None
+    class_ref = None
     try:
         print(f'INFO: importlib.import_module({moduleName})')
         module = importlib.import_module('formats.' + moduleName)
-        className = ksModuleToClass(moduleName)
-        #print('className: -%s-' % className)
-        classRef = getattr(module, className)
+        class_name = ''.join(map(lambda x: x.capitalize(), moduleName.split('_')))
+        class_ref = getattr(module, class_name)
     except AttributeError as e:
         print('ERROR: importing kaitai module %s' % moduleName)
         pass
 
-    return classRef
+    return class_ref
 
 def parseFpath(fpath, ksModuleName=None):
     print(f'parseFpath({fpath}, {ksModuleName})')
@@ -107,14 +100,14 @@ def parseFpath(fpath, ksModuleName=None):
         ksModuleName = file_id(fpath)
     #print('parseFpath() using kaitai format: %s' % ksModuleName)
 
-    ksClass = ksImportClass(ksModuleName)
-    if not ksClass:
+    ks_class = ks_import_class(ksModuleName)
+    if not ks_class:
         print(f'ERROR: importing {ksModuleName} to service {fpath}')
         return None
 
     parsed = None
     #try:
-    parsed = ksClass.from_file(fpath)
+    parsed = ks_class.from_file(fpath)
     parsed._read()
     exercise_re(parsed)
 
@@ -131,14 +124,14 @@ def parseData(data, ksModuleName=None):
         ksModuleName = data_id(data, len(data))
     #print('parseData() using kaitai format: %s' % ksModuleName)
 
-    ksClass = ksImportClass(ksModuleName)
-    if not ksClass:
+    ks_class = ks_import_class(ksModuleName)
+    if not ks_class:
         print(f'ERROR: importing {ksModuleName} to service {fpath}')
         return None
 
     parsed = None
     try:
-        parsed = ksClass.from_bytes(data)
+        parsed = ks_class.from_bytes(data)
         parsed._read()
         exercise_re(parsed)
     except Exception as e:
@@ -159,13 +152,13 @@ def parseIo(ioObj, ksModuleName=None):
     #print('parseIo() using kaitai format: %s' % ksModuleName)
 
     ioObj.seek(0, io.SEEK_SET)
-    ksClass = ksImportClass(ksModuleName)
-    if not ksClass: return None
+    ks_class = ks_import_class(ksModuleName)
+    if not ks_class: return None
 
     parsed = None
     try:
         ioObj.seek(0, io.SEEK_SET)
-        parsed = ksClass.from_io(ioObj)
+        parsed = ks_class.from_io(ioObj)
         parsed._read()
         exercise_re(parsed)
     except Exception as e:
@@ -177,57 +170,6 @@ def parseIo(ioObj, ksModuleName=None):
 #------------------------------------------------------------------------------
 # misc
 #------------------------------------------------------------------------------
-
-def objToStr(obj):
-    objType = type(obj)
-
-    # blacklist: functions, types, callables
-    #
-    if isinstance(obj, type):
-        #print('reject %s because its a type' % field_name)
-        return '(type)'
-    elif hasattr(obj, '__call__'):
-        #print('reject %s because its a callable' % field_name)
-        return '(callable)'
-
-    result = None
-
-    # whitelist: strings, unicodes, bytes, ints, bools, enums
-    #
-    if obj == None:
-        return 'None'
-    elif isinstance(obj, str):
-        if len(obj) > 8:
-            result = '%s...%s (0x%X==%d chars total)' % \
-                (repr(obj[0:8]), repr(obj[-1]), len(obj), len(obj))
-        else:
-            result = repr(obj)
-    elif isinstance(obj, bytes):
-        if len(obj) > 8:
-            result = binascii.hexlify(obj[0:8]).decode('utf-8') + '...' + \
-                ('%02X' % obj[-1]) + ' (0x%X==%d bytes total)' % (len(obj), len(obj))
-        else:
-            result = binascii.hexlify(obj).decode('utf-8')
-    # note: bool needs to appear before int (else int determination will dominate)
-    elif isinstance(obj, bool):
-        result = '%s' % (obj)
-    elif isinstance(obj, int):
-        result = '0x%X (%d)' % (obj, obj)
-    elif str(objType).startswith('<enum '):
-        result = '%s' % (obj)
-    elif isinstance(obj, list):
-        result = repr(obj)
-    elif isinstance(obj, kaitaistruct.KaitaiStruct):
-        return re.match(r'^.*\.(\w+) object at ', repr(obj)).group(1)
-    elif isinstance(obj, kaitaistruct.KaitaiStream):
-        return re.match(r'^.*\.(\w+) object at ', repr(obj)).group(1)
-    elif isinstance(obj, collections.defaultdict):
-        # probably _debug
-        result = repr(obj)
-    else:
-        result = '(unknown type %s)' % (str(objType))
-
-    return result
 
 # access all fields that may be properties, which could compute internal results
 # (often '_m_XXX' fields)
