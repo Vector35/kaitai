@@ -25,67 +25,72 @@ import kaitaistruct
 #
 # dsample:    str        data sample
 # length:    int        total length of data
-def idData(dataSample, length):
+def data_id(sample, length):
     result = None
-    #print('idData() here with sample: %s' % repr(dataSample))
+    #print('data_id() here with sample: %s' % repr(sample))
 
-    if len(dataSample) < 16:
-        return result
+    # pad to 16 bytes
+    sample = sample + b'\x00'*(16-len(sample))
 
-    if dataSample[0:4] == b'\x7fELF':
+    if sample[0:4] == b'\x7fELF':
         result = 'elf'
-    if dataSample[0:4] in [b'\xfe\xed\xfa\xce', b'\xce\xfa\xed\xfe', b'\xfe\xed\xfa\xcf', b'\xcf\xfa\xed\xfe']:
+    elif sample[0:4] in [b'\xfe\xed\xfa\xce', b'\xce\xfa\xed\xfe', b'\xfe\xed\xfa\xcf', b'\xcf\xfa\xed\xfe']:
         result = 'mach_o'
-    if dataSample[0:2] == b'MZ':
+    elif sample[0:2] == b'MZ':
         result = 'microsoft_pe'
-    if dataSample[0:8] == b'\x89PNG\x0d\x0a\x1a\x0a':
+    elif sample[0:8] == b'\x89PNG\x0d\x0a\x1a\x0a':
         result = 'png'
-    if dataSample[2:11] == b'\xFF\xe0\x00\x10JFIF\x00':
+    elif sample[2:11] == b'\xFF\xe0\x00\x10JFelif\x00':
         result = 'jpeg'
-    if dataSample[0:4] == b'GIF8':
+    elif sample[0:4] == b'Gelif8':
+        result = 'gelif'
+    elif sample[0:6] in [b'GIF89a', b'GIF87a']:
         result = 'gif'
-    if dataSample[0:2] in [b'BM', b'BA', b'CI', b'CP', b'IC', b'PT'] and struct.unpack('<I', dataSample[2:6])[0]==length:
+    elif sample[0:2] in [b'BM', b'BA', b'CI', b'CP', b'IC', b'PT'] and struct.unpack('<I', sample[2:6])[0]==length:
         result = 'bmp'
-    if dataSample[0:2] == b'PK' and dataSample[2:4] in [b'\x01\x02', b'\x03\x04', b'\x05\x06']:
+    elif sample[0:2] == b'PK' and sample[2:4] in [b'\x01\x02', b'\x03\x04', b'\x05\x06']:
         result = 'zip'
-    if dataSample[0:6] == b'Rar!\x1a\x07':
+    elif sample[0:6] == b'Rar!\x1a\x07':
         result = 'rar'
-    if dataSample[0:2] == b'\x1f\x8b' and dataSample[2:3]==b'\x08':
+    elif sample[0:2] == b'\x1f\x8b' and sample[2:3]==b'\x08':
         result = 'gzip'
+    elif sample[0:4] == b'dex\x0a':
+        result = 'dex'
 
-    #print('idData() returning \'%s\'' % result)
+    #print('data_id() returning \'%s\'' % result)
+    if not result:
+        breakpoint()
     return result
 
-def idFile(fpath):
+def file_id(fpath):
     with open(fpath, 'rb') as fp:
-        return idData(fp.read(16), os.path.getsize(fpath))
+        return data_id(fp.read(16), os.path.getsize(fpath))
 
 def ksModuleToClass(moduleName):
     # split on underscores, camelcase
     return ''.join(map(lambda x: x.capitalize(), moduleName.split('_')))
 
-formats_in_python_path = False
+# see notes in README-developers.md
+repo_in_python_path = False
 def ksImportClass(moduleName):
     print(f'ksImportClass({moduleName})')
 
-    # add the compiled Kaitai formats to the Python path
-    global formats_in_python_path
-    if not formats_in_python_path:
+    global repo_in_python_path
+    if not repo_in_python_path:
         this_file = inspect.stack()[0][1]
         this_dir = os.path.dirname(this_file)
-        formats_dir = os.path.join(this_dir, '../formats')
-        print(f'Adding {formats_dir} to the python path.') 
-        sys.path.append(formats_dir)
-        formats_in_python_path = True
+        repo_dir = os.path.join(this_dir, '..')
+        sys.path.append(repo_dir)
+        repo_in_python_path = True
 
     if not moduleName:
-        print(f'WARNING: ksImportClass given module name: {moduleName}')
+        print(f'ERROR: ksImportClass given module name: {moduleName}')
         return None
 
     classRef = None
     try:
         print(f'INFO: importlib.import_module({moduleName})')
-        module = importlib.import_module(moduleName)
+        module = importlib.import_module('formats.' + moduleName)
         className = ksModuleToClass(moduleName)
         #print('className: -%s-' % className)
         classRef = getattr(module, className)
@@ -99,7 +104,7 @@ def parseFpath(fpath, ksModuleName=None):
     print(f'parseFpath({fpath}, {ksModuleName})')
 
     if not ksModuleName:
-        ksModuleName = idFile(fpath)
+        ksModuleName = file_id(fpath)
     #print('parseFpath() using kaitai format: %s' % ksModuleName)
 
     ksClass = ksImportClass(ksModuleName)
@@ -112,6 +117,7 @@ def parseFpath(fpath, ksModuleName=None):
     parsed = ksClass.from_file(fpath)
     parsed._read()
     exercise_re(parsed)
+
     #except Exception as e:
     #    print('parseFpath(): kaitai module %s threw exception, check file type' % ksModuleName)
     #    parsed = None
@@ -122,7 +128,7 @@ def parseData(data, ksModuleName=None):
     print(f'parseData(data, {ksModuleName})')
 
     if not ksModuleName:
-        ksModuleName = idData(data, len(data))
+        ksModuleName = data_id(data, len(data))
     #print('parseData() using kaitai format: %s' % ksModuleName)
 
     ksClass = ksImportClass(ksModuleName)
@@ -149,7 +155,7 @@ def parseIo(ioObj, ksModuleName=None):
 
     if not ksModuleName:
         ioObj.seek(0, io.SEEK_SET)
-        ksModuleName = idData(ioObj.read(16), length)
+        ksModuleName = data_id(ioObj.read(16), length)
     #print('parseIo() using kaitai format: %s' % ksModuleName)
 
     ioObj.seek(0, io.SEEK_SET)
@@ -395,7 +401,7 @@ class TreeNode():
     def __init__(self, name=None):
 
         self.name = name    # string
-        
+
         self.start = None    # int
         self.end = None        # int
 
@@ -424,7 +430,7 @@ class TreeNode():
         return result
 
 #------------------------------------------------------------------------------
-# build QTree and helpers
+# build tree
 #------------------------------------------------------------------------------
 
 def build_tree(ksobj):
@@ -435,6 +441,10 @@ def build_tree(ksobj):
     field_names = list(ksobj._debug.keys())
     field_names = [x[3:] if x.startswith('_m_') else x for x in field_names]
     for field_name in field_names:
+        # sometimes X._debug will contain an entry for an attribute Y and X.Y doesn't exist ::shrug::
+        if not hasattr(ksobj, field_name):
+            continue
+
         attr = getattr(ksobj, field_name)
 
         # CASE0: attribute is a KaitaiStruct
@@ -449,21 +459,15 @@ def build_tree(ksobj):
             populate_child(ksobj, field_name, None, child)
             node.children.append(child)
 
-            # CASE1.0: list of KaitaiObjects
-            if isinstance(attr[0], kaitaistruct.KaitaiStruct):
-                for i in range(len(attr)):
-                    gc_name = f'{field_name}[{i}]'
+            # grandchildren
+            for i in range(len(attr)):
+                gc_name = f'{field_name}[{i}]'
+                if isinstance(attr[i], kaitaistruct.KaitaiStruct):
                     grandchild = build_tree(attr[i])
-                    populate_child(ksobj, gc_name, None, grandchild)
-                    child.children.append(grandchild)
-
-            # CASE1.1: list of primitives
-            else:
-                for i in range(len(attr)):
-                    gc_name = f'{field_name}[{i}]'
+                else:
                     grandchild = create_leaf(gc_name, attr[i])
-                    populate_child(ksobj, gc_name, None, grandchild)
-                    child.children.append(grandchild)
+                populate_child(ksobj, gc_name, None, grandchild)
+                child.children.append(grandchild)
 
         # CASE2: attribute is primitive
         else:
