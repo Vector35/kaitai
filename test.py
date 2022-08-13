@@ -16,7 +16,16 @@ def print_tree(node, depth=0):
         print_tree(child, depth+1)
 
 def file_to_tree(fpath):
-    ksobj = kshelpers.parseFpath(fpath)
+    # via file:
+    if 1:
+        ksobj = kshelpers.parseFpath(fpath)
+    else:
+        import binaryninja
+        #bview = binaryninja.BinaryViewType['Raw'].get_view_of_file(fpath)
+        bview = binaryninja.open_view(fpath).get_view_of_type('Raw')
+        io = kshelpers.KaitaiBinaryViewIO(bview)
+        ksobj = kshelpers.parseIo(io)
+
     tree = kshelpers.build_tree(ksobj)
     return tree
 

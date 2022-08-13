@@ -199,6 +199,7 @@ def exercise_re(ksobj):
 #
 class KaitaiBinaryViewIO:
     def __init__(self, binaryView):
+        assert binaryView.view_type == 'Raw'
         self.binaryView = binaryView
         self.position = 0
 
@@ -212,6 +213,7 @@ class KaitaiBinaryViewIO:
             self.position = len(self.binaryView)
         else:
             raise Exception('unknown whence in seek(): %d' % whence)
+        return self.position
 
     def tell(self):
         #print('tell() returning 0x%X' % (self.position))
