@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-import traceback
-
 import io
 import os
 import re
@@ -16,14 +14,13 @@ import collections
 
 import kaitaistruct
 
-
 #------------------------------------------------------------------------------
 # id and parse
 #------------------------------------------------------------------------------
 
 # return the name of the kaitai module to service this data
 #
-# dsample:    str        data sample
+# dsample:   str        data sample
 # length:    int        total length of data
 def data_id(sample, length):
     result = None
@@ -83,7 +80,7 @@ def ks_import_class(moduleName):
 
     class_ref = None
     try:
-        print(f'INFO: importlib.import_module({moduleName})')
+        #print(f'INFO: importlib.import_module({moduleName})')
         module = importlib.import_module('formats.' + moduleName)
         class_name = ''.join(map(lambda x: x.capitalize(), moduleName.split('_')))
         class_ref = getattr(module, class_name)
@@ -192,104 +189,6 @@ def exercise_re(ksobj):
         exercise_re(attr)
 
 #------------------------------------------------------------------------------
-# kaitai object exploring stuff
-#------------------------------------------------------------------------------
-
-# return all field names qualified for printing
-#
-def getfield_namesPrint(ksobj):
-    result = []
-
-    for field_name in dir(ksobj):
-        if isFieldExceptionPrint(field_name):
-            continue
-
-        try:
-            subobj = getattr(ksobj, field_name, False)
-
-            # do not return kaitai objects (are for descending, not printing)
-            if isinstance(subobj, kaitaistruct.KaitaiStruct):
-                continue
-            elif isinstance(subobj, list):
-                if len(subobj)<=0 or isinstance(subobj[0], kaitaistruct.KaitaiStruct):
-                    continue
-
-            #print('%s is ok' % field_name)
-            #print('%s is instance? %s' % (field_name, isinstance(subobj, kaitaistruct.KaitaiStruct)))
-            result.append(field_name)
-        except AttributeError:
-            pass
-
-    return result
-
-# return all field names required for descending
-#
-# IN:    kaitai object
-# OUT:    field names that are either:
-#        - kaitai objects
-#        - lists of kaitai objects
-#
-def getfield_namesDescend(ksobj):
-    result = []
-
-    for field_name in dir(ksobj):
-        if isFieldExceptionDescend(field_name):
-            continue
-
-        try:
-            subobj = getattr(ksobj, field_name, False)
-
-            if isinstance(subobj, kaitaistruct.KaitaiStruct):
-                result += [field_name]
-            elif isinstance(subobj, list):
-                if len(subobj)>0 and isinstance(subobj[0], kaitaistruct.KaitaiStruct):
-                    result += [field_name]
-        except AttributeError:
-            pass
-
-    return result
-
-# compute all kaitai objects linked to from the given object
-#
-# IN:    kaitai object
-# OUT:    [obj0, obj1, obj2, ...]
-#
-def getLinkedKaitaiObjects(ksobj):
-    result = set()
-
-    for field_name in getfield_namesDescend(ksobj):
-        subobj = getattr(ksobj, field_name, False)
-        if isinstance(subobj, list):
-            for tmp in subobj:
-                result.add(tmp)
-        else:
-            result.add(subobj)
-
-    return result
-
-# compute all kaitai objects linked to from the given object, and from its
-# descendents, and so on...
-def getLinkedKaitaiObjectsAll(ksobj, depth=0):
-    #if depth > 2:
-    #    return []
-    result = set([ksobj])
-
-    linkedObjects = getLinkedKaitaiObjects(ksobj)
-    for subobj in linkedObjects:
-        subResult = getLinkedKaitaiObjectsAll(subobj, depth+1)
-        result = result.union(subResult)
-
-    return result
-
-def getDepth(ksobj, depth=0):
-    result = depth
-
-    for subObj in getLinkedKaitaiObjects(ksobj):
-        result = max(result, getDepth(subObj, depth+1))
-
-    return result
-
-#------------------------------------------------------------------------------
 # Kaitai IO Wrapper
 #------------------------------------------------------------------------------
 
@@ -335,22 +234,28 @@ class KaitaiBinaryViewIO:
 # Qt/Kaitai OOP
 #------------------------------------------------------------------------------
 
+class NodeType(enum.Enum):
+    NORMAL = 0
+    ARRAY = 1
+    LEAF = 2
+
 # why subclass?
 # - override "<" to get sorting to work right
 # - centralized location to modify field names and labels (eg: remove '_m_')
 
 class TreeNode():
-    def __init__(self, name=None):
+    def __init__(self, type_):
+        self.type_ = type_
 
-        self.name = name    # string
-
-        self.start = None    # int
-        self.end = None        # int
-
+        self.name = None
         self.value = None    # string
 
-        self.ksobj = None    # KaitaiStruct
+        self.start = None    # int
+        self.end = None      # int
+
         self.children = []
+
+        self.io_size = None
 
     def __str__(self):
         result = ''
@@ -360,14 +265,12 @@ class TreeNode():
         else:
             result += f' [{self.start}, {self.end})'
 
+        #result += f' ({self.type_.name[0]})'
+
         result += ' '+self.name
 
         if self.value:
             result += f' value=\'{self.value}\''
-
-        if self.ksobj:
-            result += ' ksobj=%s' % self.ksobj
-            result += ' io=%s' % self.ksobj._io
 
         return result
 
@@ -375,10 +278,10 @@ class TreeNode():
 # build tree
 #------------------------------------------------------------------------------
 
-def build_tree(ksobj):
+def build_tree_re(ksobj):
     assert isinstance(ksobj, kaitaistruct.KaitaiStruct)
 
-    node = TreeNode()
+    node = TreeNode(NodeType.NORMAL)
 
     field_names = list(ksobj._debug.keys())
     field_names = [x[3:] if x.startswith('_m_') else x for x in field_names]
@@ -397,7 +300,7 @@ def build_tree(ksobj):
 
         # CASE1: attribute is a list
         elif isinstance(attr, list):
-            child = TreeNode()
+            child = TreeNode(NodeType.ARRAY)
             populate_child(ksobj, field_name, None, child)
             node.children.append(child)
 
@@ -418,6 +321,14 @@ def build_tree(ksobj):
             node.children.append(child)
 
     return node
+
+def build_tree(ksobj):
+    tree = build_tree_re(ksobj)
+    tree.name = 'root'
+    tree.start = 0
+    tree.end = ksobj._io.size()
+    normalize_offsets(tree)
+    return tree
 
 def create_leaf(field_name, obj):
     objtype = type(obj)
@@ -450,7 +361,7 @@ def create_leaf(field_name, obj):
         pass
 
     if field_value:
-        node = TreeNode()
+        node = TreeNode(NodeType.LEAF)
         node.name = field_name
         node.value = field_value
         return node
@@ -494,3 +405,23 @@ def populate_child(ksobj, field_name, field_value, node):
     if end != None:
         node.end = end
 
+def normalize_offsets(node, delta=0):
+    if node.start == None or node.end == None:
+        return
+    if node.children and node.children[0].start == None:
+        return
+
+    base = node.start
+
+    node.start += delta
+    node.end += delta
+
+    # abort on erroneous case
+    if node.children and base < node.children[0].start:
+        return
+
+    # base >= child.start
+    delta2 = 0 if not node.children else base - node.children[0].start
+
+    for child in node.children:
+        normalize_offsets(child, delta+delta2)

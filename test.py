@@ -17,12 +17,7 @@ def print_tree(node, depth=0):
 
 def file_to_tree(fpath):
     ksobj = kshelpers.parseFpath(fpath)
-
     tree = kshelpers.build_tree(ksobj)
-    tree.name = 'root'
-    tree.start = 0
-    tree.end = os.path.getsize(fpath)
-
     return tree
 
 if __name__ == '__main__':

@@ -39,6 +39,23 @@ See TreeNode and `build_tree()`.
 
 The final form, just prior to UI display, is a QTreeItem form.
 
+## Absolute vs. Relative Offsets
+
+Kaitai sometimes sets `.start` and `.end` to offsets within the target file. But other times it's offsets within a buffer, rebasing `.start` and `.end` to 0. Here's an example from microsoft_pe:
+
+```python
+    self._raw_optional_hdr = self._io.read_bytes(self.coff_hdr.size_of_optional_header)
+    _io__raw_optional_hdr = KaitaiStream(BytesIO(self._raw_optional_hdr))
+    self.optional_hdr = MicrosoftPe.OptionalHeader(_io__raw_optional_hdr, self, self._root)
+    self.optional_hdr._read()
+    self._debug['optional_hdr']['end'] = self._io.pos()
+    self._debug['sections']['start'] = self._io.pos()
+```
+
+The buffer `_io__raw_optional_hdr` is read from the file IO, and wrapped in a new IO.
+
+A primitive method to do this is to descend thru the tree and push deltas downward. See `normalize_offsets()`.
+
 ## Compiled formats in a package
 
 The compiled formats are in their own package called formats, like:
