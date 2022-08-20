@@ -148,7 +148,7 @@ class KaitaiView(QScrollArea, View):
 
     # parse the file using Kaitai, construct the TreeWidget
     def kaitaiParse(self, ksModuleName=None):
-        log_debug('kaitaiParse() with len(bv)=%d and bv.file.filename=%s' % (len(self.binaryView), self.binaryView.file.filename))
+        #log_debug('INFO: kaitaiParse() with len(bv)=%d and bv.file.filename=%s' % (len(self.binaryView), self.binaryView.file.filename))
 
         if len(self.binaryView) == 0:
             return
@@ -158,7 +158,7 @@ class KaitaiView(QScrollArea, View):
         if not ksobj:
             return
 
-        print(f'building tree on {ksobj}')
+        #print(f'INFO: building tree on {ksobj}')
         tree = kshelpers.build_tree(ksobj)
 
         def convert(node, parent=None):
@@ -192,8 +192,6 @@ class KaitaiView(QScrollArea, View):
         self.treeWidget.setUniformRowHeights(True)
         self.treeWidget.queueInitialPresentation = True
 
-        print('done')
-
     # binja callbacks
     def getData(self):
         return self.binaryView
@@ -214,9 +212,14 @@ class KaitaiView(QScrollArea, View):
         return result
 
     def getCurrentOffset(self):
-        result = self.rootSelectionStart + int((self.rootSelectionEnd - self.rootSelectionStart)/2)
-        #result = self.rootSelectionStart
-        print(f'INFO: getCurrentOffset() returning {result:08X}')
+        if True:
+            # aim at start of selected region
+            result = self.rootSelectionStart
+        else:
+            # aim at midpoint of selected region
+            result = self.rootSelectionStart + int((self.rootSelectionEnd - self.rootSelectionStart)/2)
+
+        #print(f'INFO: getCurrentOffset() returning {result:08X}')
         return result
 
     def getSelectionOffsets(self):
@@ -229,7 +232,7 @@ class KaitaiView(QScrollArea, View):
         return result
 
     def setCurrentOffset(self, offset):
-        print(f'INFO: setCurrentOffset({offset:08X})')
+        #print(f'INFO: setCurrentOffset({offset:08X})')
         self.rootSelectionStart = offset
         self.rootSelectionEnd = offset+1
         UIContext.updateStatus(True)
@@ -238,7 +241,7 @@ class KaitaiView(QScrollArea, View):
         return binaryninjaui.getMonospaceFont(self)
 
     def navigate(self, addr):
-        print(f'INFO: navigate({addr:08X})')
+        #print(f'INFO: navigate({addr:08X})')
         self.rootSelectionStart = addr
         self.rootSelectionEnd = addr+1
         self.hexWidget.setSelectionRange(addr, addr+1)
@@ -271,7 +274,7 @@ class KaitaiView(QScrollArea, View):
         if start == None or end == None:
             return
 
-        print(f'INFO: should highlight addresses [0x{start:X}, 0x{end:X})')
+        #print(f'INFO: should highlight addresses [0x{start:X}, 0x{end:X})')
 
         self.rootSelectionStart = start
         self.rootSelectionEnd = end
@@ -332,8 +335,13 @@ class KaitaiView(QScrollArea, View):
         # set hex group title to reflect current selection
         #self.hexGroup.setTitle('Hex View @ [0x%X, 0x%X)' % (start, end))
 
-    def getStatusBarWidget(self):
-        return menu.KaitaiStatusBarWidget(self)
+    def getHeaderOptionsWidget(self):
+    #    print('RETURNING THE HEADER OPTIONS WIDGET!')
+        return menu.KaitaiOptionsWidget(self)
+
+    #def getStatusBarWidget(self):
+    #    print('RETURNING THE STATUS BAR WIDGET!')
+    #    return menu.KaitaiStatusBarWidget(self)
 
 class KaitaiViewType(ViewType):
     def __init__(self):

@@ -64,7 +64,7 @@ def file_id(fpath):
 # see notes in README-developers.md
 repo_in_python_path = False
 def ks_import_class(moduleName):
-    print(f'ks_import_class({moduleName})')
+    #print(f'INFO: ks_import_class({moduleName})')
 
     global repo_in_python_path
     if not repo_in_python_path:
@@ -75,7 +75,7 @@ def ks_import_class(moduleName):
         repo_in_python_path = True
 
     if not moduleName:
-        print(f'ERROR: ks_import_class given module name: {moduleName}')
+        #print(f'ERROR: ks_import_class given module name: {moduleName}')
         return None
 
     class_ref = None
@@ -91,11 +91,10 @@ def ks_import_class(moduleName):
     return class_ref
 
 def parseFpath(fpath, ksModuleName=None):
-    print(f'parseFpath({fpath}, {ksModuleName})')
+    #print(f'INFO: parseFpath({fpath}, {ksModuleName})')
 
     if not ksModuleName:
         ksModuleName = file_id(fpath)
-    #print('parseFpath() using kaitai format: %s' % ksModuleName)
 
     ks_class = ks_import_class(ksModuleName)
     if not ks_class:
@@ -115,7 +114,7 @@ def parseFpath(fpath, ksModuleName=None):
     return parsed
 
 def parseData(data, ksModuleName=None):
-    print(f'parseData(data, {ksModuleName})')
+    #print(f'INFO: parseData(data, {ksModuleName})')
 
     if not ksModuleName:
         ksModuleName = data_id(data, len(data))
@@ -132,13 +131,13 @@ def parseData(data, ksModuleName=None):
         parsed._read()
         exercise_re(parsed)
     except Exception as e:
-        print('parseData(): kaitai module %s threw exception, check file type' % ksModuleName)
+        print('ERROR: parseData(): kaitai module %s threw exception, check file type' % ksModuleName)
         parsed = None
 
     return parsed
 
 def parseIo(ioObj, ksModuleName=None):
-    print(f'parseIo(ioObj, {ksModuleName})')
+    #print(f'INFO: parseIo(ioObj, {ksModuleName})')
 
     ioObj.seek(0, io.SEEK_END)
     length = ioObj.tell()
@@ -159,7 +158,7 @@ def parseIo(ioObj, ksModuleName=None):
         parsed._read()
         exercise_re(parsed)
     except Exception as e:
-        print('parseIo(): kaitai module %s threw exception %s, check file type' % (ksModuleName, str(e)))
+        print('ERROR: parseIo(): kaitai module %s threw exception %s, check file type' % (ksModuleName, str(e)))
         parsed = None
 
     return parsed
