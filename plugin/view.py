@@ -150,7 +150,7 @@ class KaitaiView(QScrollArea, View):
     def kaitaiParse(self, ksModuleName=None):
         #log_debug('INFO: kaitaiParse() with len(bv)=%d and bv.file.filename=%s' % (len(self.binaryView), self.binaryView.file.filename))
 
-        if len(self.binaryView) == 0:
+        if self.binaryView.length == 0:
             return
 
         kaitaiIO = kshelpers.KaitaiBinaryViewIO(self.binaryView)
@@ -207,7 +207,7 @@ class KaitaiView(QScrollArea, View):
         return result
 
     def getLength(self):
-        result = len(self.binaryView)
+        result = self.binaryView.length
         #log_debug('getLength() returning '+str(result))
         return result
 
@@ -365,7 +365,7 @@ class KaitaiViewType(ViewType):
             return 1
 
         # if we don't recognize it, return 0
-        ksModuleName = kshelpers.data_id(dataSample, len(binaryView))
+        ksModuleName = kshelpers.data_id(dataSample, binaryView.length)
         if not ksModuleName:
             return 1
 
