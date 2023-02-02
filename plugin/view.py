@@ -148,10 +148,16 @@ class KaitaiView(QScrollArea, View):
 
     # parse the file using Kaitai, construct the TreeWidget
     def kaitaiParse(self, ksModuleName=None):
-        #log_debug('INFO: kaitaiParse() with len(bv)=%d and bv.file.filename=%s' % (len(self.binaryView), self.binaryView.file.filename))
+        #log_debug(f'INFO: kaitaiParse({ksModuleName}) with len(bv)={len(self.binaryView)} and bv.file.filename={self.binaryView.file.filename}')
 
-        if self.binaryView.length == 0:
+        bv = self.binaryView
+        if bv.length == 0:
             return
+
+        if not ksModuleName:
+            dataSample = bv.read(0, 16)
+            if len(dataSample) == 16:
+                ksModuleName = kshelpers.infer_kaitai_module(dataSample, bv.length, bv.file.filename)
 
         kaitaiIO = kshelpers.KaitaiBinaryViewIO(self.binaryView)
         ksobj = kshelpers.parseIo(kaitaiIO, ksModuleName)
@@ -364,8 +370,8 @@ class KaitaiViewType(ViewType):
         if len(dataSample) != 16:
             return 1
 
-        # if we don't recognize it, return 0
-        ksModuleName = kshelpers.data_id(dataSample, binaryView.length)
+        # if we don't recognize it, return 1
+        ksModuleName = kshelpers.infer_kaitai_module(dataSample, binaryView.length, filename)
         if not ksModuleName:
             return 1
 

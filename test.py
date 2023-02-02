@@ -44,7 +44,7 @@ if __name__ == '__main__':
             'hello-windows-x86.pe32.exe', 'hello-macos-x64.macho', 'hello_windows_x64.exe',
             'hello-sh4', 'hello.exe', 'hello-linux-ppc64',
             # image formats
-            'lena.bmp', 'lena.gif', 'lena.png',
+            'lena.bmp', 'lena.gif', 'lena.png', 'lena.jpg', 'lena.jpeg',
             # archives
             'elephbrain.rar', 'MSPACMAN.zip',
             # misc

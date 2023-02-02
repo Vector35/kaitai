@@ -22,13 +22,20 @@ import kaitaistruct
 #
 # dsample:   str        data sample
 # length:    int        total length of data
-def data_id(sample, length):
+#  fpath:    str        path to file
+def infer_kaitai_module(sample, length=0, fpath=None):
+    # if no sample given, but path to file is, take sample
+    if sample == None and fpath:
+        length = os.path.getsize(fpath)
+        with open(fpath, 'rb') as fp:
+            sample = fp.read(min(16, length))
+
     result = None
-    #print('data_id() here with sample: %s' % repr(sample))
 
     # pad to 16 bytes
     sample = sample + b'\x00'*(16-len(sample))
 
+    # can we infer the module from the file's data?
     if sample[0:4] == b'\x7fELF':
         result = 'elf'
     elif sample[0:4] in [b'\xfe\xed\xfa\xce', b'\xce\xfa\xed\xfe', b'\xfe\xed\xfa\xcf', b'\xcf\xfa\xed\xfe']:
@@ -54,12 +61,16 @@ def data_id(sample, length):
     elif sample[0:4] == b'dex\x0a':
         result = 'dex'
 
-    #print('data_id() returning \'%s\'' % result)
-    return result
+    # if not, make best guess on extension
+    if not result and fpath:
+        lookup = {  '.png':'png', '.jpg':'jpeg', '.jpeg':'jpeg', '.gif':'gif',
+                    '.bmp':'bmp', '.zip':'zip',  '.zip':'zip',   '.rar':'rar',
+                    '.gz':'gzip' }
+        _, ext = os.path.splitext(fpath)
+        result = lookup.get(ext)
 
-def file_id(fpath):
-    with open(fpath, 'rb') as fp:
-        return data_id(fp.read(16), os.path.getsize(fpath))
+    #print('infer_kaitai_module() returning \'%s\'' % result)
+    return result
 
 # see notes in README-developers.md
 repo_in_python_path = False
@@ -94,7 +105,7 @@ def parseFpath(fpath, ksModuleName=None):
     #print(f'INFO: parseFpath({fpath}, {ksModuleName})')
 
     if not ksModuleName:
-        ksModuleName = file_id(fpath)
+        ksModuleName = infer_kaitai_module(None, 0, fpath)
 
     ks_class = ks_import_class(ksModuleName)
     if not ks_class:
@@ -117,7 +128,7 @@ def parseData(data, ksModuleName=None):
     #print(f'INFO: parseData(data, {ksModuleName})')
 
     if not ksModuleName:
-        ksModuleName = data_id(data, len(data))
+        ksModuleName = infer_kaitai_module(data)
     #print('parseData() using kaitai format: %s' % ksModuleName)
 
     ks_class = ks_import_class(ksModuleName)
@@ -144,7 +155,7 @@ def parseIo(ioObj, ksModuleName=None):
 
     if not ksModuleName:
         ioObj.seek(0, io.SEEK_SET)
-        ksModuleName = data_id(ioObj.read(16), length)
+        ksModuleName = infer_kaitai_module(ioObj.read(16), length)
     #print('parseIo() using kaitai format: %s' % ksModuleName)
 
     ioObj.seek(0, io.SEEK_SET)
