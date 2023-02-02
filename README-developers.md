@@ -72,3 +72,7 @@ The reason is because the compiled formats use intra-package imports, like `from
 Since we load the formats dynamically (to avoid statically executing `from formats import MyFormat` for every single format), we have to set the python module path carefully. We add the repository directory to the module path, so that `formats` is an immediate subdirectory and a `importlib.import_module()` call can specify `formats.MyFormat` to set the package.
 
 See `ksImportClass()` for implementation details.
+
+## Editable Install
+
+When developing, I recommend the plugin manager installed version be uninstalled, and a symlink be set up to this source directory. See the `install` target in [./Makefile](./Makefile) for details.
