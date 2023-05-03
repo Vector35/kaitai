@@ -220,7 +220,7 @@ class KaitaiBinaryViewIO:
         elif whence == io.SEEK_CUR:
             self.position += offs
         elif whence == io.SEEK_END:
-            self.position = len(self.binaryView)
+            self.position = self.binaryView.length
         else:
             raise Exception('unknown whence in seek(): %d' % whence)
         return self.position
