@@ -232,7 +232,7 @@ class KaitaiBinaryViewIO:
     def read(self, length=None):
         # if no length is given (eg: see read_bytes_full() in kaitaistruct.py)
         if length == None:
-            length = len(self.binaryView) - self.position
+            length = self.binaryView.length - self.position
 
         #print('read(%d) (starting at position: 0x%X)' % (length, self.position))
         data = self.binaryView.read(self.position, length)
