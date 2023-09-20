@@ -22,7 +22,7 @@ def file_to_tree(fpath):
     else:
         import binaryninja
         #bview = binaryninja.BinaryViewType['Raw'].get_view_of_file(fpath)
-        bview = binaryninja.open_view(fpath).get_view_of_type('Raw')
+        bview = binaryninja.load(fpath).get_view_of_type('Raw')
         io = kshelpers.KaitaiBinaryViewIO(bview)
         ksobj = kshelpers.parseIo(io)
 
