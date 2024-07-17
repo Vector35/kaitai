@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     import_statements = []
 
-    for folder, subfolder, fnames in os.walk(path_formats):
+    for folder, subfolder, file_names in os.walk(path_formats):
         if folder.endswith('.git'):
             continue
         if folder.endswith('.circleci'):
@@ -27,32 +27,33 @@ if __name__ == '__main__':
             continue
 
         # compile each
-        for fname in fnames:
-            if not fname.endswith('.ksy'):
+        for file_name in file_names:
+            if not file_name.endswith('.ksy'):
                 continue
-            if fname in exceptions:
+            if file_name in exceptions:
                 continue
 
-            path_ksy = os.path.join(folder, fname)
-            fname_ksy = os.path.split(path_ksy)[1]
-            path_py = os.path.join(path_out, fname_ksy.replace('ksy','py'))
+            path_ksy = os.path.join(folder, file_name)
+            file_name_ksy = os.path.split(path_ksy)[1]
+            path_py = os.path.join(path_out, file_name_ksy.replace('ksy','py'))
 
             path_rel = os.path.relpath(os.path.split(path_ksy)[0], path_formats)
             depth_path_rel = len(path_rel.split('/'))
-            print('%s (%d deep from path_formats)' % (path_rel, depth_path_rel))
+            print(f'{path_rel} ({depth_path_rel} deep from path_formats)')
             
-            module_name = fname[0:-4]
+            module_name = file_name[0:-4]
             class_name = ''.join(map(lambda x: x.capitalize(), module_name.split('_')))
-            #import_statements.append('from kaitai_struct_formats.' + path_rel.replace('/','.') + '.' + module_name + ' import ' + class_name)
-            import_statements.append('from formats.%s import %s' % (module_name, class_name))
+            import_statements.append(f'from formats.{module_name} import {class_name}')
 
             if os.path.exists(path_py):
                 if os.path.getmtime(path_ksy) <= os.path.getmtime(path_py):
                     print('%s up to date, skipping' % path_py)
                     continue
 
-            cmd = '%s --debug --target python --import-path %s --python-package . %s --outdir %s' % \
-                (path_compiler, path_formats, path_ksy, path_out)
+            cmd = (f'{path_compiler} --debug --target python '
+                   f'--import-path {path_formats} '
+                   f'--python-package . {path_ksy} '
+                   f'--outdir {path_out}')
             print(cmd)
             os.system(cmd)
 

@@ -75,4 +75,4 @@ See `ksImportClass()` for implementation details.
 
 ## Editable Install
 
-When developing, I recommend the plugin manager installed version be uninstalled, and a symlink be set up to this source directory. See the `install` target in [./Makefile](./Makefile) for details.
+When developing, I recommend the plugin manager installed version be uninstalled, and a symlink be set up to this source directory.
