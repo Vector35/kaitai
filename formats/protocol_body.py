@@ -10,10 +10,10 @@ if getattr(kaitaistruct, 'API_VERSION', (0, 9)) < (0, 9):
     raise Exception("Incompatible Kaitai Struct Python API: 0.9 or later is required, but you have %s" % (kaitaistruct.__version__))
 
 from . import ipv4_packet
-from . import icmp_packet
 from . import ipv6_packet
-from . import udp_datagram
 from . import tcp_segment
+from . import udp_datagram
+from . import icmp_packet
 class ProtocolBody(KaitaiStruct):
     """Protocol body represents particular payload on transport level (OSI
     layer 4).
@@ -240,7 +240,7 @@ class ProtocolBody(KaitaiStruct):
             self.hdr_ext_len = self._io.read_u1()
             self._debug['hdr_ext_len']['end'] = self._io.pos()
             self._debug['body']['start'] = self._io.pos()
-            self.body = self._io.read_bytes((self.hdr_ext_len - 1))
+            self.body = self._io.read_bytes(((self.hdr_ext_len - 1) if self.hdr_ext_len > 0 else 1))
             self._debug['body']['end'] = self._io.pos()
             self._debug['next_header']['start'] = self._io.pos()
             self.next_header = ProtocolBody(self.next_header_type, self._io)
