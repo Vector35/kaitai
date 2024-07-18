@@ -68,7 +68,6 @@ class MyQTreeWidget(QTreeWidget):
             queue.append(self.topLevelItem(i))
 
         while visibleRows < rowCapacity:
-            #log_debug('visibleRows=%d, rowCapacity=%d len(queue)=%d' % (visibleRows, rowCapacity, len(queue)))
             if not queue:
                 break
 
@@ -234,7 +233,6 @@ class KaitaiView(QScrollArea, View):
             structPath = label + '.' + structPath
         self.struct_path.setText('root.' + structPath)
 
-        #
         start, end = int(item.text(2), 16), int(item.text(3), 16)
         if start == None or end == None:
             return
@@ -243,59 +241,6 @@ class KaitaiView(QScrollArea, View):
         self.root_selection_end = end
 
         self.hex_widget.setSelectionOffsets((start, end - start))
-
-        return
-
-        # determine current IO we're in (the Kaitai input/output abstraction)
-        _io = None
-        # if the tree item is linked to a KaitaiNode, simply read the IO
-        if item.kt_struct:
-            _io = item.kt_struct._parent._io
-        else:
-            # else we're a leaf
-            parent = item.parent()
-            if parent:
-                # a leaf with a parent -> read parent's IO
-                _io = parent.kt_struct._io
-            else:
-                # a leaf without a parent -> we must be at root -> use root IO
-                _io = self.ioRoot
-
-        # if the selection is in the root view, store the interval so that upon
-        # getCurrentOffset() callback, we return the middle and feature map is
-        # updated
-        if _io == self.ioRoot:
-            self.root_selection_start = start
-            self.root_selection_end = end
-
-        # current kaitai object is on a different io? then swap HexEditor
-        if _io != self.ioCurrent:
-            # delete old view
-            self.hex_widget.hide()
-            self.hex_widget.setParent(None)
-            self.hex_widget.deleteLater()
-            self.hex_widget = None
-
-            # if it's the original file IO, wrap the already-open file binary view
-            if _io == self.ioRoot:
-                self.hex_widget = HexEditor(self.binary_view, ViewFrame.viewFrameForWidget(self), 0)
-            # otherwise delete old view, create a temporary view
-            else:
-                # create new view
-                length = _io.size()
-                _io.seek(0)
-                data = _io.read_bytes(length)
-                bv = BinaryView.new(data)
-                self.hex_widget = HexEditor(bv, ViewFrame.viewFrameForWidget(self), 0)
-
-            self.splitter.addWidget(self.hex_widget)
-            self.ioCurrent = _io
-
-        # now position selection in whatever HexEditor is current
-        self.hex_widget.setSelectionOffsets((start, end))
-
-        # TODO: set hex group title to reflect current selection
-        #self.hexGroup.setTitle('Hex View @ [0x%X, 0x%X)' % (start, end))
 
     def getHeaderOptionsWidget(self):
         return menu.KaitaiOptionsWidget(self)
