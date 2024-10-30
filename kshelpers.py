@@ -126,6 +126,9 @@ def ks_import_class(module_name: str):
         module = importlib.import_module(f'formats.{module_name}')
         class_name = ''.join(map(lambda x: x.capitalize(), module_name.split('_')))
         class_ref = getattr(module, class_name)
+    except ModuleNotFoundError as e:
+        print(f'ERROR: importing kaitai module {module_name} {e}')
+        pass
     except AttributeError as e:
         print(f'ERROR: importing kaitai module {module_name} {e}')
         pass
