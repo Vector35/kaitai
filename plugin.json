@@ -23,7 +23,7 @@
         "Windows": "no special instructions, package manager is recommended"
     },
     "dependencies": {},
-    "version": "1.2.1",
+    "version": "1.2.2",
     "author": "Vector 35 Inc",
     "minimumbinaryninjaversion": 3164
 }
