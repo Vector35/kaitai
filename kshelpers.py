@@ -1,4 +1,3 @@
-import audioop
 import inspect
 import io
 import os
