@@ -81,6 +81,23 @@ class MyQTreeWidget(QTreeWidget):
                     visibleRows += 1
 
 
+# sorts the start/end (hex) columns numerically rather than lexicographically,
+# so values don't need to be zero-padded for display
+class KaitaiTreeWidgetItem(QTreeWidgetItem):
+    def __lt__(self, other):
+        tree = self.treeWidget()
+        col = tree.sortColumn() if tree else 0
+        if col in (2, 3):
+            return self._num(col) < other._num(col)
+        return self.text(col) < other.text(col)
+
+    def _num(self, col):
+        try:
+            return int(self.text(col), 16)
+        except ValueError:
+            return -1
+
+
 class KaitaiView(QScrollArea, View):
     def __init__(self, parent, binary_view: BinaryView):
         QScrollArea.__init__(self, parent)
@@ -146,10 +163,11 @@ class KaitaiView(QScrollArea, View):
         tree = kshelpers.build_tree(kt_struct)
 
         def convert(node, parent=None):
-            start_str = 'None' if node.start is None else f'{node.start:08X}'
-            end_str = 'None' if node.end is None else f'{node.end:08X}'
+            start_str = '' if node.start is None else f'0x{node.start:X}'
+            end_str = '' if node.end is None else f'0x{node.end:X}'
+            value_str = '' if node.value is None else str(node.value)
 
-            result = QTreeWidgetItem(parent, [str(node.name), str(node.value), start_str, end_str])
+            result = KaitaiTreeWidgetItem(parent, [str(node.name), value_str, start_str, end_str])
             for child in node.children:
                 convert(child, result)
             return result
@@ -233,14 +251,16 @@ class KaitaiView(QScrollArea, View):
             structPath = label + '.' + structPath
         self.struct_path.setText('root.' + structPath)
 
-        start, end = int(item.text(2), 16), int(item.text(3), 16)
-        if start == None or end == None:
+        # offset columns may be blank for fields without a byte range
+        try:
+            start, end = int(item.text(2), 16), int(item.text(3), 16)
+        except ValueError:
             return
 
         self.root_selection_start = start
         self.root_selection_end = end
 
-        self.hex_widget.setSelectionOffsets((start, end - start))
+        self.hex_widget.setSelectionOffsets((start, end))
 
     def getHeaderOptionsWidget(self):
         return menu.KaitaiOptionsWidget(self)
