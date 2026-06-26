@@ -6,7 +6,7 @@ from binaryninjaui import View, ViewType, ViewFrame, UIContext, HexEditor, getMo
 import binaryninjaui
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QScrollArea, QWidget, QVBoxLayout, QGroupBox, QTreeWidget, QTreeWidgetItem, QLineEdit, \
-    QHeaderView, QSplitter
+    QHeaderView, QSplitter, QPlainTextEdit, QPushButton, QLabel
 
 from .. import kshelpers
 from . import menu
@@ -114,6 +114,11 @@ class KaitaiView(QScrollArea, View):
         self.ioRoot = None
         self.ioCurrent = None
 
+        # (start, end, QTreeWidgetItem) per node, for hex->tree lookup
+        self.node_intervals = []
+        # guard against tree<->hex selection feedback loops
+        self._syncing = False
+
         # top half = treeWidget + structPath
         self.tree_widget = MyQTreeWidget()
         self.tree_widget.setColumnCount(4)
@@ -132,11 +137,27 @@ class KaitaiView(QScrollArea, View):
         # bottom half = hexWidget
         self.hex_widget = HexEditor(binary_view, ViewFrame.viewFrameForWidget(self), 0)
 
-        # splitter = top half, bottom half
+        # editor pane = live .ksy source editor + compile button + status line
+        self.ksy_editor = QPlainTextEdit(self)
+        self.ksy_editor.setFont(binaryninjaui.getMonospaceFont(self))
+        self.ksy_editor.setPlaceholderText('Paste a Kaitai .ksy here, then Compile && Parse')
+        self.ksy_compile_btn = QPushButton('Compile && Parse', self)
+        self.ksy_compile_btn.clicked.connect(self.on_compile_clicked)
+        self.ksy_status = QLabel('', self)
+
+        editorPane = QWidget(self)
+        editorLayout = QVBoxLayout()
+        editorLayout.addWidget(self.ksy_editor)
+        editorLayout.addWidget(self.ksy_compile_btn)
+        editorLayout.addWidget(self.ksy_status)
+        editorPane.setLayout(editorLayout)
+
+        # splitter = tree, hex, editor
         self.splitter = QSplitter(self)
         self.splitter.setOrientation(Qt.Vertical)
         self.splitter.addWidget(topHalf)
         self.splitter.addWidget(self.hex_widget)
+        self.splitter.addWidget(editorPane)
 
         self.setWidgetResizable(True)
         self.setWidget(self.splitter)
@@ -144,23 +165,30 @@ class KaitaiView(QScrollArea, View):
         self.construct_view()
 
     # parse the file using Kaitai, construct the TreeWidget
-    def construct_view(self, module_name: Optional[str] = None):
+    # pass ks_class to parse with a specific (e.g. live-compiled) class instead of inferring
+    def construct_view(self, module_name: Optional[str] = None, ks_class=None):
         bv = self.binary_view
         if self.binary_view.length == 0:
             return
 
-        if not module_name:
-            data_sample = bv.read(0, 16)
-            # TODO: Remove len check here.
-            if len(data_sample) == 16:
-                module_name = kshelpers.infer_kaitai_module(data_sample, bv.length, bv.file.filename)
-
         io_view = kshelpers.KaitaiBinaryViewIO(self.binary_view)
-        kt_struct = kshelpers.parse_io_view(io_view, module_name)
+
+        if ks_class is not None:
+            kt_struct = kshelpers.parse_io_view_with_class(io_view, ks_class)
+        else:
+            if not module_name:
+                data_sample = bv.read(0, 16)
+                # TODO: Remove len check here.
+                if len(data_sample) == 16:
+                    module_name = kshelpers.infer_kaitai_module(data_sample, bv.length, bv.file.filename)
+            kt_struct = kshelpers.parse_io_view(io_view, module_name)
+
         if not kt_struct:
             return
 
         tree = kshelpers.build_tree(kt_struct)
+
+        self.node_intervals = []
 
         def convert(node, parent=None):
             start_str = '' if node.start is None else f'0x{node.start:X}'
@@ -168,6 +196,8 @@ class KaitaiView(QScrollArea, View):
             value_str = '' if node.value is None else str(node.value)
 
             result = KaitaiTreeWidgetItem(parent, [str(node.name), value_str, start_str, end_str])
+            if node.start is not None and node.end is not None and node.end > node.start:
+                self.node_intervals.append((node.start, node.end, result))
             for child in node.children:
                 convert(child, result)
             return result
@@ -219,6 +249,7 @@ class KaitaiView(QScrollArea, View):
     def setCurrentOffset(self, offset):
         self.root_selection_start = offset
         self.root_selection_end = offset + 1
+        self.select_tree_node_for_offset(offset)
         UIContext.updateStatus(True)
 
     def getFont(self):
@@ -228,12 +259,60 @@ class KaitaiView(QScrollArea, View):
         self.root_selection_start = addr
         self.root_selection_end = addr + 1
         self.hex_widget.setSelectionOffsets((addr, addr + 1))
+        # hex/global navigation (e.g. clicking a byte) propagates here -> sync tree
+        self.select_tree_node_for_offset(addr)
         return True
+
+    # hex -> tree: select the smallest parsed region containing this file offset
+    def select_tree_node_for_offset(self, offset):
+        if self._syncing:
+            return
+
+        best_item = None
+        best_size = None
+        for start, end, item in self.node_intervals:
+            if start <= offset < end:
+                size = end - start
+                if best_size is None or size < best_size:
+                    best_item, best_size = item, size
+
+        if best_item is None:
+            return
+
+        self._syncing = True
+        try:
+            parent = best_item.parent()
+            while parent:
+                parent.setExpanded(True)
+                parent = parent.parent()
+            self.tree_widget.setCurrentItem(best_item)
+            self.tree_widget.scrollToItem(best_item)
+        finally:
+            self._syncing = False
+
+    # compile the .ksy in the editor pane and reparse the current file with it
+    def on_compile_clicked(self):
+        source = self.ksy_editor.toPlainText()
+        if not source.strip():
+            self.ksy_status.setText('(empty .ksy)')
+            return
+        try:
+            module_path, module_name, class_name = kshelpers.compile_ksy(source)
+            ks_class = kshelpers.load_ksy_class(module_path, module_name, class_name)
+        except Exception as e:
+            self.ksy_status.setText(f'✗ {e}')
+            return
+        self.construct_view(ks_class=ks_class)
+        self.ksy_status.setText(f'✓ {module_name}.{class_name} compiled and parsed')
 
     def navigateToFileOffset(self, offset):
         return False
 
     def onTreeSelect(self, wtf=None):
+        # ignore selections we triggered ourselves from a hex->tree sync
+        if self._syncing:
+            return
+
         # get KaitaiTreeWidgetItem
         items = self.tree_widget.selectedItems()
         if not items or len(items) < 1:
