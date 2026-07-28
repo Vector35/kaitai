@@ -5,8 +5,8 @@ from binaryninjaui import View, ViewType, ViewFrame, UIContext, HexEditor, getMo
 
 import binaryninjaui
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QScrollArea, QWidget, QVBoxLayout, QGroupBox, QTreeWidget, QTreeWidgetItem, QLineEdit, \
-    QHeaderView, QSplitter, QPlainTextEdit, QPushButton, QLabel
+from PySide6.QtWidgets import QScrollArea, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QTreeWidget, QTreeWidgetItem, \
+    QLineEdit, QHeaderView, QSplitter, QPlainTextEdit, QPushButton, QLabel, QFileDialog
 
 from .. import kshelpers
 from . import menu
@@ -119,6 +119,13 @@ class KaitaiView(QScrollArea, View):
         # guard against tree<->hex selection feedback loops
         self._syncing = False
 
+        # active-format tracking
+        self.ksy_path = None         # file the editor is bound to (None = unsaved)
+        self.active_name = None      # format name currently driving the tree
+        self.active_source = None    # 'builtin' | 'file' | 'editor'
+        self.compiled_text = None    # editor text at last successful compile
+        self.editor_locked = True    # editor read-only by default
+
         # top half = treeWidget + structPath
         self.tree_widget = MyQTreeWidget()
         self.tree_widget.setColumnCount(4)
@@ -137,20 +144,46 @@ class KaitaiView(QScrollArea, View):
         # bottom half = hexWidget
         self.hex_widget = HexEditor(binary_view, ViewFrame.viewFrameForWidget(self), 0)
 
-        # editor pane = live .ksy source editor + compile button + status line
+        # editor pane = active-format line + .ksy editor + buttons + sync/status line
+        self.active_label = QLabel('', self)
+
         self.ksy_editor = QPlainTextEdit(self)
         self.ksy_editor.setFont(binaryninjaui.getMonospaceFont(self))
-        self.ksy_editor.setPlaceholderText('Paste a Kaitai .ksy here, then Compile && Parse')
+        self.ksy_editor.setPlaceholderText('Load or write a Kaitai .ksy here, then Compile && Parse')
+        self.ksy_editor.textChanged.connect(self.refresh_indicators)
+
+        self.ksy_lock_btn = QPushButton(self)
+        self.ksy_lock_btn.setCheckable(True)
+        self.ksy_lock_btn.clicked.connect(self.on_lock_toggled)
+        self.ksy_load_btn = QPushButton('Load…', self)
+        self.ksy_load_btn.clicked.connect(self.on_load_clicked)
+        self.ksy_save_btn = QPushButton('Save', self)
+        self.ksy_save_btn.clicked.connect(self.on_save_clicked)
         self.ksy_compile_btn = QPushButton('Compile && Parse', self)
         self.ksy_compile_btn.clicked.connect(self.on_compile_clicked)
+
+        buttonRow = QHBoxLayout()
+        buttonRow.addWidget(self.ksy_lock_btn)
+        buttonRow.addWidget(self.ksy_load_btn)
+        buttonRow.addWidget(self.ksy_save_btn)
+        buttonRow.addWidget(self.ksy_compile_btn)
+
+        self.sync_label = QLabel('', self)
         self.ksy_status = QLabel('', self)
+        statusRow = QHBoxLayout()
+        statusRow.addWidget(self.sync_label)
+        statusRow.addWidget(self.ksy_status)
+        statusRow.addStretch(1)
 
         editorPane = QWidget(self)
         editorLayout = QVBoxLayout()
+        editorLayout.addWidget(self.active_label)
         editorLayout.addWidget(self.ksy_editor)
-        editorLayout.addWidget(self.ksy_compile_btn)
-        editorLayout.addWidget(self.ksy_status)
+        editorLayout.addLayout(buttonRow)
+        editorLayout.addLayout(statusRow)
         editorPane.setLayout(editorLayout)
+
+        self.set_locked(True)
 
         # splitter = tree, hex, editor
         self.splitter = QSplitter(self)
@@ -169,7 +202,7 @@ class KaitaiView(QScrollArea, View):
     def construct_view(self, module_name: Optional[str] = None, ks_class=None):
         bv = self.binary_view
         if self.binary_view.length == 0:
-            return
+            return False
 
         io_view = kshelpers.KaitaiBinaryViewIO(self.binary_view)
 
@@ -184,7 +217,7 @@ class KaitaiView(QScrollArea, View):
             kt_struct = kshelpers.parse_io_view(io_view, module_name)
 
         if not kt_struct:
-            return
+            return False
 
         tree = kshelpers.build_tree(kt_struct)
 
@@ -223,6 +256,14 @@ class KaitaiView(QScrollArea, View):
 
         self.tree_widget.setUniformRowHeights(True)
         self.tree_widget.queue_initial_presentation = True
+
+        # a built-in/auto-detected format drove this parse; the editor isn't the
+        # source of truth, so mark it active and lock the editor by default
+        if ks_class is None:
+            self.set_active(module_name, 'builtin')
+            self.set_locked(True)
+
+        return True
 
     def getData(self):
         return self.binary_view
@@ -290,6 +331,79 @@ class KaitaiView(QScrollArea, View):
         finally:
             self._syncing = False
 
+    # editor lock (write protection)
+    def set_locked(self, locked):
+        self.editor_locked = locked
+        self.ksy_editor.setReadOnly(locked)
+        self.ksy_lock_btn.setChecked(locked)
+        self.ksy_lock_btn.setText('🔒 Locked' if locked else '🔓 Editable')
+        self.refresh_indicators()
+
+    def on_lock_toggled(self):
+        self.set_locked(self.ksy_lock_btn.isChecked())
+
+    # record which format is currently driving the tree view
+    def set_active(self, name, source):
+        self.active_name = name
+        self.active_source = source
+        self.refresh_indicators()
+
+    # update the "which format is active" and "edits compiled?" indicators
+    def refresh_indicators(self):
+        if not self.active_name:
+            self.active_label.setText('Active format: (none — open a file or compile a .ksy)')
+        elif self.active_source == 'builtin':
+            self.active_label.setText(f'Active format: {self.active_name}  ·  built-in')
+        elif self.active_source == 'file':
+            self.active_label.setText(f'Active format: {self.active_name}  ·  {self.ksy_path or "file"}')
+        else:
+            self.active_label.setText(f'Active format: {self.active_name}  ·  editor')
+
+        # sync indicator: relationship between editor text and what was last compiled
+        text = self.ksy_editor.toPlainText()
+        if not text.strip():
+            self.sync_label.setText('')
+        elif self.compiled_text is None:
+            self.sync_label.setText('○ not compiled')
+        elif text == self.compiled_text:
+            self.sync_label.setText('✓ up to date')
+        else:
+            self.sync_label.setText('● modified — recompile to apply')
+
+    # load a .ksy from disk into the editor and remember its path
+    def on_load_clicked(self):
+        path, _ = QFileDialog.getOpenFileName(self, 'Load Kaitai format', self.ksy_path or '',
+                                              'Kaitai struct (*.ksy);;All files (*)')
+        if not path:
+            return
+        try:
+            with open(path, 'r') as fp:
+                self.ksy_editor.setPlainText(fp.read())
+        except OSError as e:
+            self.ksy_status.setText(f'✗ {e}')
+            return
+        self.ksy_path = path
+        self.compiled_text = None  # freshly loaded, not yet compiled
+        self.set_locked(False)     # the user is editing this file
+        self.ksy_status.setText(f'loaded {path}')
+
+    # save the editor contents; save directly if loaded from a file, else prompt
+    def on_save_clicked(self):
+        path = self.ksy_path
+        if not path:
+            path, _ = QFileDialog.getSaveFileName(self, 'Save Kaitai format', '',
+                                                  'Kaitai struct (*.ksy);;All files (*)')
+            if not path:
+                return
+        try:
+            with open(path, 'w') as fp:
+                fp.write(self.ksy_editor.toPlainText())
+        except OSError as e:
+            self.ksy_status.setText(f'✗ {e}')
+            return
+        self.ksy_path = path
+        self.ksy_status.setText(f'saved {path}')
+
     # compile the .ksy in the editor pane and reparse the current file with it
     def on_compile_clicked(self):
         source = self.ksy_editor.toPlainText()
@@ -302,7 +416,12 @@ class KaitaiView(QScrollArea, View):
         except Exception as e:
             self.ksy_status.setText(f'✗ {e}')
             return
-        self.construct_view(ks_class=ks_class)
+        if not self.construct_view(ks_class=ks_class):
+            self.ksy_status.setText(f'✗ {module_name} compiled but did not parse this file')
+            return
+        # the editor is now the source of truth for the active format
+        self.compiled_text = source
+        self.set_active(module_name, 'file' if self.ksy_path else 'editor')
         self.ksy_status.setText(f'✓ {module_name}.{class_name} compiled and parsed')
 
     def navigateToFileOffset(self, offset):
