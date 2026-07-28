@@ -2,9 +2,14 @@ import inspect
 import io
 import os
 import re
+import sys
 import enum
 import types
 import importlib
+import importlib.util
+import shutil
+import subprocess
+import tempfile
 from typing import Optional
 
 from binaryninja import BinaryView
@@ -173,6 +178,115 @@ def parse_io_view(io_view: KaitaiBinaryViewIO, module_name: Optional[str] = None
         parsed = None
 
     return parsed
+
+
+def parse_io_view_with_class(io_view: KaitaiBinaryViewIO, ks_class) -> Optional[KaitaiStruct]:
+    parsed = None
+    try:
+        io_view.seek(0, io.SEEK_SET)
+        parsed = ks_class.from_io(io_view)
+        parsed._read()
+        exercise_re(parsed)
+    except Exception as e:
+        print(f'ERROR: parse_io_view_with_class(): {ks_class} threw exception {e}, check file type')
+        parsed = None
+    return parsed
+
+
+#------------------------------------------------------------------------------
+# live compilation (Kaitai-IDE style)
+#------------------------------------------------------------------------------
+
+_login_path_cache = None
+
+
+# GUI apps launched from Finder/Dock get a minimal PATH and don't read the shell
+# profile where Homebrew etc. add themselves. Ask the login shell for its real
+# PATH so anything the user installed normally is visible. Cached; the shell is
+# only spawned once per session.
+def login_shell_path() -> Optional[str]:
+    global _login_path_cache
+    if _login_path_cache is not None:
+        return _login_path_cache or None
+
+    shell = os.environ.get('SHELL', '/bin/zsh')
+    try:
+        proc = subprocess.run([shell, '-lic', 'echo $PATH'],
+                              capture_output=True, text=True, timeout=5)
+        _login_path_cache = proc.stdout.strip()
+    except Exception:
+        _login_path_cache = ''
+    return _login_path_cache or None
+
+
+# Resolve the kaitai-struct-compiler binary: try the inherited PATH first, then
+# the login shell's PATH. No hardcoded install locations.
+def find_compiler(compiler: str = 'kaitai-struct-compiler') -> Optional[str]:
+    found = shutil.which(compiler)
+    if found:
+        return found
+    login_path = login_shell_path()
+    if login_path:
+        return shutil.which(compiler, path=login_path)
+    return None
+
+
+# Compile a .ksy source string into a Python module on disk, in --debug mode so
+# the ._debug start/end metadata the tree-builder relies on is present.
+#
+# Returns (module_path, module_name, class_name). Raises RuntimeError carrying
+# the compiler's diagnostics on failure (so the UI can show them).
+def compile_ksy(ksy_source: str, work_dir: Optional[str] = None,
+                compiler: str = 'kaitai-struct-compiler') -> tuple:
+    # the output filename is derived from meta/id; grab it so we know what to import.
+    # meta id is the first bare "id:" (seq/instances fields are "- id:")
+    m = re.search(r'^\s*id:\s*([A-Za-z0-9_]+)\s*$', ksy_source, re.MULTILINE)
+    if not m:
+        raise RuntimeError('could not find meta/id in .ksy source')
+    module_name = m.group(1)
+
+    compiler_path = find_compiler(compiler)
+    if not compiler_path:
+        raise RuntimeError(f'compiler not found: {compiler} (install kaitai-struct-compiler)')
+
+    work_dir = work_dir or tempfile.mkdtemp(prefix='kaitai_live_')
+    ksy_path = os.path.join(work_dir, module_name + '.ksy')
+    with open(ksy_path, 'w') as fp:
+        fp.write(ksy_source)
+
+    cmd = [compiler_path, '--debug', '--target', 'python',
+           '--import-path', work_dir,
+           '--outdir', work_dir, ksy_path]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True)
+    except FileNotFoundError:
+        raise RuntimeError(f'compiler not found: {compiler_path} (install kaitai-struct-compiler)')
+
+    if proc.returncode != 0:
+        raise RuntimeError(proc.stderr.strip() or proc.stdout.strip() or 'compiler failed')
+
+    module_path = os.path.join(work_dir, module_name + '.py')
+    if not os.path.exists(module_path):
+        raise RuntimeError(f'compiler produced no output for "{module_name}": {proc.stderr.strip()}')
+
+    class_name = ''.join(x.capitalize() for x in module_name.split('_'))
+    return module_path, module_name, class_name
+
+
+# (Re)load a freshly compiled module from an arbitrary path and return its class.
+# Pops any cached copy first so repeated edits actually take effect.
+def load_ksy_class(module_path: str, module_name: str, class_name: str):
+    work_dir = os.path.dirname(module_path)
+    if work_dir not in sys.path:
+        sys.path.insert(0, work_dir)  # let any sibling-format imports resolve
+
+    sys.modules.pop(module_name, None)
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+
+    return getattr(module, class_name)
 
 
 #------------------------------------------------------------------------------
